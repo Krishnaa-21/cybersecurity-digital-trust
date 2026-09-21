@@ -7,6 +7,7 @@ import {
   PageHeader,
   Panel,
   Notice,
+  StatCards,
   RiskBadge,
   StatusBadge,
   TableMessage,
@@ -66,29 +67,18 @@ function CaseDetailsPanel({ caseData, caseId }) {
   );
 }
 
-function SummaryTable({ nodes, edges }) {
-  const cells = [
-    { label: "Total Entities", value: nodes.length },
-    { label: "Total Connections", value: edges.length },
-    { label: "High-Risk Entities", value: nodes.filter((n) => (n.risk_level || "").toLowerCase() === "high").length, alert: true },
-    { label: "Cross-Case Links", value: edges.filter((e) => e.extra?.cross_case).length },
-  ];
+function SummaryCards({ nodes, edges }) {
+  const high = nodes.filter((n) => (n.risk_level || "").toLowerCase() === "high").length;
   return (
-    <table className="std-stats">
-      <caption className="std-visually-hidden">Correlation summary</caption>
-      <thead>
-        <tr>{cells.map((c) => <th key={c.label} scope="col">{c.label}</th>)}</tr>
-      </thead>
-      <tbody>
-        <tr>
-          {cells.map((c) => (
-            <td key={c.label}>
-              <span className={`std-stats__value${c.alert && c.value > 0 ? " std-stats__value--alert" : ""}`}>{c.value}</span>
-            </td>
-          ))}
-        </tr>
-      </tbody>
-    </table>
+    <StatCards
+      label="Correlation summary"
+      items={[
+        { label: "Total Entities", value: nodes.length },
+        { label: "Total Connections", value: edges.length },
+        { label: "High-Risk Entities", value: high, alert: high > 0 },
+        { label: "Cross-Case Links", value: edges.filter((e) => e.extra?.cross_case).length },
+      ]}
+    />
   );
 }
 
@@ -145,7 +135,7 @@ function EntityRegister({ nodes, edges, isLoading }) {
               <th scope="col">Risk Level</th>
               <th scope="col" className="num">Connections</th>
               <th scope="col">Source</th>
-              <th scope="col">Remarks</th>
+              <th scope="col" className="wide">Remarks</th>
             </tr>
           </thead>
           <tbody>
@@ -197,7 +187,7 @@ function ConnectionRegister({ nodes, edges, isLoading }) {
               <th scope="col">S.No.</th>
               <th scope="col">Entity A</th>
               <th scope="col">Entity B</th>
-              <th scope="col">Basis of Link</th>
+              <th scope="col" className="wide">Basis of Link</th>
               <th scope="col" className="num">Confidence</th>
               <th scope="col">Cross-Case</th>
               <th scope="col">Evidence Ref.</th>
@@ -241,6 +231,7 @@ export default function StandardCorrelationPage() {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showDiagram, setShowDiagram] = useState(true);
   const [error, setError] = useState(null);
+  const [narrativeError, setNarrativeError] = useState(null);
 
   // Same endpoints and handling as the Analysis Mode page.
   const load = async () => {
@@ -273,10 +264,12 @@ export default function StandardCorrelationPage() {
 
   const handleRegenerate = async () => {
     setIsRegenerating(true);
+    setNarrativeError(null);
     try {
       setSummaryData(await apiClient.post(`cases/${caseId}/summary/regenerate`));
     } catch (err) {
       console.error("Failed to regenerate AI summary:", err);
+      setNarrativeError("The narrative could not be regenerated. Please try again.");
     } finally {
       setIsRegenerating(false);
     }
@@ -287,7 +280,7 @@ export default function StandardCorrelationPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: "Cases", to: "/" }, { label: caseNo }, { label: "Correlation & Graph" }]} />
+      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: `Case ${caseNo}` }, { label: "Correlation & Graph" }]} />
 
       <PageHeader
         title={`Case ${caseNo} — Correlation & Network Analysis`}
@@ -313,7 +306,7 @@ export default function StandardCorrelationPage() {
       {error && <Notice tone="danger" title="Unable to load case data">{error}</Notice>}
 
       <CaseDetailsPanel caseData={caseData} caseId={caseId} />
-      <SummaryTable nodes={nodes} edges={edges} />
+      <SummaryCards nodes={nodes} edges={edges} />
 
       <Panel
         id="case-narrative"
@@ -325,6 +318,7 @@ export default function StandardCorrelationPage() {
         }
         footer="Advisory only: this narrative is machine-generated from ingested evidence and must be verified by the Investigating Officer before any action is taken."
       >
+        {narrativeError && <Notice tone="danger" inline title="Narrative unavailable">{narrativeError}</Notice>}
         {summaryData ? (
           <>
             <p className="std-prose" style={{ marginTop: 0 }}>{summaryData.narrative_text}</p>

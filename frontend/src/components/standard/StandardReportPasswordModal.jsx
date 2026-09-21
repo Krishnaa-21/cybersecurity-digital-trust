@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { X } from "lucide-react";
 import { Notice } from "./StandardUI";
 
 /**
@@ -62,6 +63,7 @@ export default function StandardReportPasswordModal({
             <p>File-level password encryption</p>
           </div>
           <button type="button" className="std-modal__close" onClick={onClose} disabled={isGenerating}>
+            <X aria-hidden="true" size={14} />
             Close
           </button>
         </div>

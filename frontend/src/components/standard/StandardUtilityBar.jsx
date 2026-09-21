@@ -1,12 +1,12 @@
 import React from "react";
 import { useMode } from "../../context/ModeContext";
-import { PORTAL, pick, t } from "../../config/standardPortal";
+import { t } from "../../config/standardPortal";
 import BetaTag from "../BetaTag";
 
 /**
- * Top-most bar of the portal: "Government of [X]" identification on the left,
- * accessibility and display controls on the right. Used by the app header and
- * the login page. Uses the existing ModeContext — no new behaviour.
+ * Top-most bar of the portal: accessibility and display controls.
+ * Used by the app header and the login page. Uses the existing ModeContext —
+ * no new behaviour.
  */
 export default function StandardUtilityBar() {
   const {
@@ -24,11 +24,9 @@ export default function StandardUtilityBar() {
   return (
     <div className="std-utility">
       <div className="std-container std-utility__inner">
-        <div className="std-utility__gov">{pick(PORTAL.governmentName, language)}</div>
-
         <div className="std-utility__controls">
           <div className="std-ctl" role="group" aria-label={s.language}>
-            <span className="std-ctl__label">{s.language}:</span>
+            <span className="std-ctl__label" aria-hidden="true">{s.language}</span>
             <div className="std-seg">
               <button type="button" aria-pressed={language === "en"} onClick={() => setLanguage("en")}>
                 English
@@ -40,7 +38,7 @@ export default function StandardUtilityBar() {
           </div>
 
           <div className="std-ctl" role="group" aria-label={s.textSize}>
-            <span className="std-ctl__label">{s.textSize}:</span>
+            <span className="std-ctl__label" aria-hidden="true">{s.textSize}</span>
             <div className="std-seg">
               <button type="button" aria-label="Decrease text size" aria-pressed={fontSizeScale === "small"} onClick={() => setFontSizeScale("small")}>
                 A-
@@ -63,7 +61,7 @@ export default function StandardUtilityBar() {
           </div>
 
           <div className="std-ctl" role="group" aria-label={s.displayMode}>
-            <span className="std-ctl__label">{s.displayMode}:</span>
+            <span className="std-ctl__label" aria-hidden="true">{s.displayMode}</span>
             <div className="std-seg">
               <button type="button" className="std-seg__mode" aria-pressed={mode === "standard"} onClick={() => setMode("standard")}>
                 <span>{s.standard}</span>

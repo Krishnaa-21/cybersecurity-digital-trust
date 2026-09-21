@@ -113,6 +113,26 @@ export function Panel({ id, title, meta, children, flush = false, footer }) {
   );
 }
 
+/* ── Headline statistic cards ──────────────────────────────────────────── */
+export function StatCards({ items, label }) {
+  return (
+    <dl className="std-statgrid" aria-label={label}>
+      {items.map((it) => (
+        <div key={it.label} className={`std-stat${it.alert ? " std-stat--alert" : ""}`}>
+          <dt>{it.label}</dt>
+          <dd className="std-stat__value">{it.value}</dd>
+          {it.note || it.alert ? (
+            <dd className="std-stat__note">
+              {it.alert && it.alertText ? <strong>▲ {it.alertText} — </strong> : null}
+              {it.note}
+            </dd>
+          ) : null}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 /* ── Formal notice (alert / information) ───────────────────────────────── */
 export function Notice({ tone = "info", title, children, action, inline = false, role }) {
   const resolvedRole = role || (tone === "danger" ? "alert" : "status");

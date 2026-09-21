@@ -134,7 +134,7 @@ export default function ChatWidget() {
       cancelled = true;
     };
   }, [activeCaseId]);
-  const caseLabel = activeCaseNumber ? `Case #${activeCaseNumber}` : `Case ID ${activeCaseId}`;
+  const caseLabel = activeCaseNumber ? `Case #${String(activeCaseNumber).replace(/^#/, "")}` : `Case ID ${activeCaseId}`;
 
   // Listen for global custom event to toggle chat (e.g. from topbar button)
   useEffect(() => {
@@ -265,7 +265,7 @@ export default function ChatWidget() {
       {!isOpen && (
         <div
           className={`fixed right-6 z-40 font-sans transition-all duration-300 ${
-            isStandardMode ? "top-28" : "top-20"
+            isStandardMode ? "bottom-5 sm:bottom-6" : "top-20"
           }`}
         >
           <button
@@ -275,28 +275,28 @@ export default function ChatWidget() {
             title="Open TraceX Cyber AI Assistant"
             className={`group flex items-center gap-2.5 px-4 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 cursor-pointer ${
               isStandardMode
-                ? "bg-[#0B3B60] hover:bg-[#082C48] text-white border border-[#082C48] shadow-lg hover:shadow-xl"
+                ? "bg-[#0B3B60] hover:bg-[#082C48] text-white border border-white/30 shadow-[0_6px_20px_rgba(11,42,69,0.35)]"
                 : "bg-[#050914]/90 hover:bg-[#0B1224] text-white border border-cyan-400/40 hover:border-cyan-300 shadow-[0_4px_24px_rgba(0,0,0,0.7),0_0_20px_rgba(0,212,255,0.25)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.8),0_0_28px_rgba(0,212,255,0.45)] backdrop-blur-xl"
             }`}
           >
             <div className="relative flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-cyan-400/20 flex items-center justify-center text-cyan-300 group-hover:scale-110 transition-transform">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform ${isStandardMode ? "bg-white/15 text-white" : "bg-cyan-400/20 text-cyan-300"}`}>
                 <Bot className="w-3.5 h-3.5" />
               </div>
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />
             </div>
 
-            <div className="flex flex-col text-left">
-              <span className="text-[11.5px] font-bold tracking-wide leading-tight bg-gradient-to-r from-cyan-200 via-white to-cyan-400 bg-clip-text text-transparent">
+            <div className={`flex-col text-left ${isStandardMode ? "hidden sm:flex" : "flex"}`}>
+              <span className={`text-[11.5px] font-bold tracking-wide leading-tight ${isStandardMode ? "text-white" : "bg-gradient-to-r from-cyan-200 via-white to-cyan-400 bg-clip-text text-transparent"}`}>
                 TraceX Cyber AI
               </span>
-              <span className="text-[9px] font-mono text-cyan-300/70 leading-none">
+              <span className={`text-[9px] font-mono leading-none ${isStandardMode ? "text-white/75" : "text-cyan-300/70"}`}>
                 {activeCaseId ? caseLabel : "Global Intelligence"}
               </span>
             </div>
 
-            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400/15 text-cyan-300 border border-cyan-400/30 font-semibold">
+            <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-semibold ${isStandardMode ? "hidden" : "bg-cyan-400/15 text-cyan-300 border border-cyan-400/30"}`}>
               LIVE
             </span>
           </button>
@@ -350,9 +350,9 @@ export default function ChatWidget() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-bold tracking-wide truncate">
-                      TraceX Cyber Intelligence Assistant
+                      {isStandardMode ? "TraceX AI Assistant" : "TraceX Cyber Intelligence Assistant"}
                     </h2>
-                    <span className="flex items-center gap-1 text-[9.5px] px-1.5 py-0.5 rounded font-mono font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40">
+                    <span className={`items-center gap-1 text-[9.5px] px-1.5 py-0.5 rounded font-mono font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 flex-shrink-0 ${isStandardMode ? "hidden sm:flex" : "flex"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       ONLINE
                     </span>
@@ -404,8 +404,8 @@ export default function ChatWidget() {
                 isStandardMode ? "bg-[#F8FAFC] border-[#E2E8F0]" : "bg-[#070D1E]/90 border-cyan-500/15"
               }`}
             >
-              <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400/70 flex-shrink-0 flex items-center gap-1 font-semibold">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span className={`text-[10px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-semibold ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400/70"}`}>
+                <Sparkles className={`w-3 h-3 ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400"}`} />
                 Suggested:
               </span>
               {quickPrompts.map((prompt) => (
@@ -467,7 +467,7 @@ export default function ChatWidget() {
 
                     {/* Metadata & Timestamp Row */}
                     <div className="flex items-center justify-between gap-4 mt-2 pt-1 border-t border-white/10 text-[10px] font-mono">
-                      <span className={m.sender === "user" ? "text-white/60" : "text-cyan-400/60"}>
+                      <span className={m.sender === "user" ? "text-white/60" : isStandardMode ? "text-[#566274]" : "text-cyan-400/60"}>
                         {m.sender === "user" ? "Officer" : "TraceX Intelligence Model"}
                       </span>
                       <div className="flex items-center gap-2">
@@ -494,7 +494,7 @@ export default function ChatWidget() {
                     {/* Follow-up suggestions from the assistant */}
                     {m.sender === "bot" && m.id === lastBotId && !isLoading && m.suggested?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-cyan-500/20">
-                        <span className="text-[10px] font-mono text-cyan-300 w-full mb-0.5">
+                        <span className={`text-[10px] font-mono w-full mb-0.5 ${isStandardMode ? "text-[#0B3B60] font-semibold" : "text-cyan-300"}`}>
                           Next Recommended Actions:
                         </span>
                         {m.suggested.map((sg) => (
@@ -542,7 +542,7 @@ export default function ChatWidget() {
                         : "bg-[#0B1328]/95 border border-cyan-500/30 text-cyan-300 shadow-[0_0_15px_rgba(0,212,255,0.15)]"
                     }`}
                   >
-                    <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                    <Loader2 className={`w-4 h-4 animate-spin ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400"}`} />
                     <span>Analyzing intelligence databases, Mule graphs & telecom records...</span>
                   </div>
                 </div>

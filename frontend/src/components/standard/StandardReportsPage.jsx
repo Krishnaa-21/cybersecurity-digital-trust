@@ -27,6 +27,7 @@ export default function StandardReportsPage() {
   const [isGeneratingTakedown, setIsGeneratingTakedown] = useState(false);
   const [briefHash, setBriefHash] = useState(null);
   const [takedownHash, setTakedownHash] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -53,6 +54,7 @@ export default function StandardReportsPage() {
 
   // Direct download: encrypted automatically, asks for password only when opening the PDF
   const handleDownload = async (type) => {
+    setDownloadError(null);
     if (type === "brief") {
       setIsGeneratingBrief(true);
       try {
@@ -62,6 +64,7 @@ export default function StandardReportsPage() {
         await saveBlob(res, `investigative_brief_${cleanCaseNumber}.pdf`);
       } catch (err) {
         console.error("Failed to generate brief:", err);
+        setDownloadError("The Investigative Brief could not be generated. Please try again.");
       } finally {
         setIsGeneratingBrief(false);
       }
@@ -74,6 +77,7 @@ export default function StandardReportsPage() {
         await saveBlob(res, `takedown_request_${cleanCaseNumber}.pdf`);
       } catch (err) {
         console.error("Failed to generate takedown request:", err);
+        setDownloadError("The Takedown Notice could not be generated. Please try again.");
       } finally {
         setIsGeneratingTakedown(false);
       }
@@ -103,7 +107,7 @@ export default function StandardReportsPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: "Cases", to: "/" }, { label: caseNo }, { label: "Reports" }]} />
+      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: `Case ${caseNo}`, to: `/cases/${caseId}/graph` }, { label: "Reports" }]} />
 
       <PageHeader
         title={`Case ${caseNo} — Certified Forensic Reports`}
@@ -127,8 +131,10 @@ export default function StandardReportsPage() {
       />
 
       <Notice tone="info" title="Password-protected exports">
-        Each report is encrypted at file level. To open the downloaded PDF report, enter your officer password (<code>demo1234</code>) or Badge ID.
+        Each report is encrypted at file level. To open the downloaded PDF, enter your officer account password or Badge ID.
       </Notice>
+
+      {downloadError && <Notice tone="danger" title="Download failed">{downloadError}</Notice>}
 
       <Panel id="available-reports" title="Available Reports" flush>
         <div className="std-table-wrap">
@@ -139,7 +145,7 @@ export default function StandardReportsPage() {
                 <th scope="col">S.No.</th>
                 <th scope="col">Report</th>
                 <th scope="col">Legal Basis</th>
-                <th scope="col">Description</th>
+                <th scope="col" className="wide">Description</th>
                 <th scope="col">Action</th>
               </tr>
             </thead>

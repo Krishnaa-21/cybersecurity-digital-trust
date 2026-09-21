@@ -1,25 +1,22 @@
 /**
- * Standard Mode (government portal skin) — configurable identity and copy.
+ * Standard Mode (official portal skin) — configurable identity and copy.
  *
- * Every value in the "identity" block is an intentional PLACEHOLDER. Replace the
- * bracketed text (and set `emblemSrc`) with the details of the deploying
- * department. Nothing here affects data, APIs or business logic.
+ * Nothing here affects data, APIs or business logic. `officeAddress` and
+ * `helpdesk` are optional: they are only rendered in the footer when set, so
+ * the deploying department can add real contact details without any code change.
  */
 
 export const PORTAL = {
-  // ── Identity (placeholders — replace before deployment) ────────────────
-  governmentName: { en: "Government of [State / Union Territory]", hi: "[राज्य / संघ राज्य क्षेत्र] सरकार" },
-  departmentName: { en: "[Name of Department]", hi: "[विभाग का नाम]" },
-  officeAddress: "[Office address, City, State – PIN Code]",
-  helpdesk: "[Helpdesk telephone / official e-mail]",
-
-  // Path or URL of the official emblem / seal image (e.g. "/emblem.png").
-  // When null, a neutral seal placeholder is drawn instead.
-  emblemSrc: null,
-
   // ── Portal naming ──────────────────────────────────────────────────────
   portalName: "TraceX",
   portalTitle: { en: "Cyber Fraud Case Management & Correlation System", hi: "साइबर धोखाधड़ी प्रकरण प्रबंधन एवं सहसंबंध प्रणाली" },
+
+  // Brand mark (lightweight derivative of /icon.png, served from /public).
+  logoSrc: "/icon-192.png",
+
+  // ── Optional contact details (rendered in the footer only when provided) ─
+  officeAddress: null, // e.g. "Cyber Cell HQ, Bhopal, Madhya Pradesh – 462001"
+  helpdesk: null, // e.g. "0755-XXXXXXX · helpdesk@example.gov.in"
 };
 
 /** Shell strings that support the English / Hindi language switch. */

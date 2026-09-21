@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useLocation, useParams } from "react-router-dom";
+import { LogOut, Plus, Search } from "lucide-react";
 import { useMode } from "../../context/ModeContext";
 import { getOfficer, clearAuth, apiClient } from "../../api/client";
 import { t } from "../../config/standardPortal";
@@ -8,8 +9,8 @@ import StandardBranding from "./StandardBranding";
 import { scamLabel } from "./StandardUI";
 
 /**
- * Government-portal header: utility bar → identity band (seal, department,
- * case search, officer) → primary navigation bar.
+ * Portal header: utility bar → identity band (logo, app name, case search,
+ * officer) → primary navigation bar.
  * Behaviour (search, navigation, sign-out) is identical to the previous header.
  */
 export default function StandardHeader({ onOpenNewInvestigation }) {
@@ -20,11 +21,15 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
   const { caseId } = useParams();
   const activeCaseId = caseId || "1";
 
-  const officer = getOfficer() || {
-    name: "A. Sharma",
-    badge_id: "MP-IO-4471",
-    station_name: "Bhopal Cyber Cell",
-  };
+  const officer = getOfficer() || {};
+  const officerName = officer.name || s.officer;
+  const initials = officerName
+    .replace(/[^\p{L}\s.]/gu, "")
+    .split(/[\s.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
 
   /* ── Case search (fetches the case list lazily, filters locally) ───── */
   const [query, setQuery] = useState("");
@@ -127,18 +132,21 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
                   {s.searchLabel}
                 </label>
                 <div className="std-search__row">
-                  <input
-                    id="std-case-search"
-                    type="search"
-                    className="std-input"
-                    autoComplete="off"
-                    placeholder={s.searchPlaceholder}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onFocus={() => {
-                      if (results.length > 0) setOpen(true);
-                    }}
-                  />
+                  <div className="std-search__field">
+                    <Search className="std-search__icon" aria-hidden="true" size={16} />
+                    <input
+                      id="std-case-search"
+                      type="search"
+                      className="std-input"
+                      autoComplete="off"
+                      placeholder={s.searchPlaceholder}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onFocus={() => {
+                        if (results.length > 0) setOpen(true);
+                      }}
+                    />
+                  </div>
                   <button type="submit" className="std-btn">
                     {language === "hi" ? "खोजें" : "Search"}
                   </button>
@@ -157,9 +165,10 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
                       {results.map((c) => (
                         <li key={c.id}>
                           <button type="button" className="std-search__item" onClick={() => openCase(c)}>
-                            <span className="std-id">{c.case_number}</span> — {c.victim_name}
-                            <br />
-                            <span className="std-faint" style={{ fontSize: "0.8125rem" }}>
+                            <span className="std-search__primary">
+                              <span className="std-id">{c.case_number}</span> — {c.victim_name}
+                            </span>
+                            <span className="std-search__secondary">
                               {c.district || "District pending"} · {scamLabel(c.scam_type)}
                             </span>
                           </button>
@@ -171,17 +180,30 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
               )}
             </div>
 
-            <div className="std-officer">
-              <div className="std-officer__name">{officer.name || s.officer}</div>
-              <div className="std-officer__meta">
-                {s.badge}: <span className="std-mono">{officer.badge_id}</span>
-                {officer.station_name ? <> · {officer.station_name}</> : null}
+            <div className="std-identity__user">
+              <div className="std-officer">
+                <span className="std-officer__avatar" aria-hidden="true">{initials || "IO"}</span>
+                <div className="std-officer__text">
+                  <div className="std-officer__name">{officerName}</div>
+                  {(officer.badge_id || officer.station_name) && (
+                    <div className="std-officer__meta">
+                      {officer.badge_id ? (
+                        <>
+                          {s.badge}: <span className="std-mono">{officer.badge_id}</span>
+                        </>
+                      ) : null}
+                      {officer.badge_id && officer.station_name ? " · " : null}
+                      {officer.station_name || null}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={handleSignOut}>
-              {s.signOut}
-            </button>
+              <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={handleSignOut}>
+                <LogOut aria-hidden="true" size={14} />
+                {s.signOut}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -199,7 +221,8 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
           </ul>
           <div className="std-nav__action">
             <button type="button" className="std-btn std-btn--ondark std-btn--sm" onClick={onOpenNewInvestigation}>
-              + {s.registerCase}
+              <Plus aria-hidden="true" size={15} />
+              {s.registerCase}
             </button>
           </div>
         </div>

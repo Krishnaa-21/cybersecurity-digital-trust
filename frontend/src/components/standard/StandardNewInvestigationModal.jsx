@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../api/client";
 import { Notice, StatusBadge, EVIDENCE_CATEGORY_LABELS } from "./StandardUI";
@@ -166,6 +167,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
             <p>Register the incident and ingest multi-source evidence artifacts</p>
           </div>
           <button type="button" className="std-modal__close" onClick={onClose} disabled={isCorrelating}>
+            <X aria-hidden="true" size={14} />
             Close
           </button>
         </div>

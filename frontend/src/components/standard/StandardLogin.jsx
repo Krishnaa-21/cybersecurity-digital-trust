@@ -34,7 +34,7 @@ export default function StandardLogin() {
     } catch (err) {
       let msg = err.message || "Authentication failed. Check your badge ID and password.";
       if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || err.name === "TypeError") {
-        msg = "Unable to connect to TraceX backend. Please verify the server is running on localhost:8000.";
+        msg = "Unable to reach the TraceX server. Please check your connection and try again.";
       }
       setError(msg);
     } finally {
@@ -44,6 +44,7 @@ export default function StandardLogin() {
 
   return (
     <div className="std-shell">
+      <a className="std-skip" href="#std-main">Skip to main content</a>
       <StandardUtilityBar />
       <div className="std-identity">
         <div className="std-container std-identity__inner">
@@ -51,7 +52,7 @@ export default function StandardLogin() {
         </div>
       </div>
 
-      <main id="std-main" className="std-main">
+      <main id="std-main" tabIndex={-1} className="std-main">
         <div className="std-container">
           <div className="std-pagehead">
             <div>
@@ -75,7 +76,7 @@ export default function StandardLogin() {
               </div>
             </section>
 
-            <section className="std-panel" aria-labelledby="std-login-title">
+            <section className="std-panel std-login__signin" aria-labelledby="std-login-title">
               <div className="std-panel__head">
                 <h2 className="std-panel__title" id="std-login-title">Sign in to your account</h2>
               </div>
