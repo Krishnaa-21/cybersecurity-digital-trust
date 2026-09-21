@@ -174,9 +174,12 @@
 .std-visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ── 4. Header: utility bar, identity band, navigation ──────────────────── */
-.std-utility { background: #E6EBF1; border-bottom: 1px solid var(--std-border-soft); font-size: 0.8125rem; color: var(--std-text); }
-.std-utility__inner { display: flex; justify-content: flex-end; padding-block: 0.35rem; }
+.std-utility { background: #E6EBF1; border-bottom: 1px solid var(--std-border-soft); font-size: 0.8125rem; color: var(--std-text); min-height: 2.75rem; display: flex; align-items: center; }
+.std-utility__inner { display: flex; align-items: center; justify-content: flex-end; padding-block: 0.35rem; width: 100%; }
 .std-utility__controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.35rem 0.9rem; }
+@media (min-width: 768px) {
+  .std-utility__controls { margin-right: 13.5rem; }
+}
 .std-ctl { display: inline-flex; align-items: center; gap: 0.4rem; }
 .std-ctl__label { display: none; color: var(--std-text-muted); }
 @media (min-width: 1000px) { .std-ctl__label { display: inline; } }
@@ -230,11 +233,10 @@
 .std-nav__link:hover { background: var(--std-navy-hover); }
 .std-nav__link[aria-current="page"] { background: var(--std-navy-darker); border-bottom-color: #fff; }
 .std-nav__action { display: flex; align-items: center; padding-block: 0.4rem; }
-@media (min-width: 768px) { .std-nav__action { margin-right: 11.5rem; } }
 @media (max-width: 767px) {
   .std-nav__list { width: 100%; }
   .std-nav__link { padding: 0.75rem 0.7rem; font-size: 0.875rem; }
-  .std-nav__action { width: 100%; padding-bottom: 0.7rem; margin-right: 0; }
+  .std-nav__action { width: 100%; padding-bottom: 0.7rem; }
   .std-nav__action .std-btn { width: 100%; }
   .std-identity__tools, .std-identity__user { width: 100%; }
   .std-identity__user { justify-content: space-between; }
@@ -244,7 +246,7 @@
   .std-search__field .std-input { width: 100%; }
   .std-search__results { left: 0; right: 0; width: auto; max-width: none; }
   .std-utility__inner { justify-content: flex-start; }
-  .std-utility__controls { justify-content: flex-start; }
+  .std-utility__controls { justify-content: flex-start; max-width: calc(100% - 3.5rem); }
 }
 
 /* ── 5. Breadcrumb & page heading ───────────────────────────────────────── */
@@ -472,20 +474,36 @@
 
 /* ── 14. AI assistant launcher (shared component, Standard placement) ───── */
 [data-mode="standard"] .std-chat-launcher-wrap {
-  position: fixed;
-  top: 7.25rem;
-  right: max(1.5rem, calc((100vw - 80rem) / 2 + 1.5rem));
-  z-index: 40;
+  position: fixed !important;
+  top: 0.45rem;
+  right: 1.25rem;
+  z-index: 100;
+  margin: 0;
+}
+
+@media (min-width: 1280px) {
+  [data-mode="standard"] .std-chat-launcher-wrap {
+    top: 0.45rem;
+    right: 1.5rem;
+  }
 }
 
 @media (max-width: 767px) {
   [data-mode="standard"] .std-chat-launcher-wrap {
-    top: 0.55rem;
+    top: 0.35rem;
     right: 0.75rem;
   }
 }
 
-[data-mode="standard"] #tracex-ai-chatbot-launcher { border-radius: 999px; }
+[data-mode="standard"] #tracex-ai-chatbot-launcher {
+  border-radius: 999px;
+}
+
+[data-mode="standard"][data-contrast="high"] #tracex-ai-chatbot-launcher {
+  background: #000 !important;
+  color: #fff !important;
+  border: 2px solid #000 !important;
+}
 
 /* ── 15. Network diagram (existing interactive component, formal skin) ──── */
 /* The component is untouched; this wrapper re-colours it to a light, flat,

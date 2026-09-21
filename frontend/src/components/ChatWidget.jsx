@@ -264,7 +264,7 @@ export default function ChatWidget() {
       {/* ── Top-Right Corner Floating Launcher Button ── */}
       {!isOpen && (
         <div
-          className={`z-40 font-sans transition-all duration-300 ${
+          className={`z-50 font-sans transition-opacity duration-200 ${
             isStandardMode ? "std-chat-launcher-wrap fixed" : "fixed right-6 top-20"
           }`}
         >
@@ -273,10 +273,10 @@ export default function ChatWidget() {
             id="tracex-ai-chatbot-launcher"
             onClick={() => setIsOpen(true)}
             title="Open TraceX Cyber AI Assistant"
-            className={`group flex items-center gap-2.5 px-4 py-2.5 rounded-full font-semibold text-xs transition-all duration-200 cursor-pointer ${
+            className={`group flex items-center gap-2.5 rounded-full font-semibold text-xs transition-all duration-200 cursor-pointer ${
               isStandardMode
-                ? "bg-[#0B3B60] hover:bg-[#082C48] text-white border border-white/30 shadow-[0_6px_20px_rgba(11,42,69,0.35)]"
-                : "bg-[#050914]/90 hover:bg-[#0B1224] text-white border border-cyan-400/40 hover:border-cyan-300 shadow-[0_4px_24px_rgba(0,0,0,0.7),0_0_20px_rgba(0,212,255,0.25)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.8),0_0_28px_rgba(0,212,255,0.45)] backdrop-blur-xl"
+                ? "px-3 sm:px-4 py-1.5 sm:py-2 bg-[#0B3B60] hover:bg-[#082C48] text-white border border-white/30 shadow-[0_4px_16px_rgba(11,42,69,0.28)] hover:shadow-[0_6px_20px_rgba(11,42,69,0.38)]"
+                : "px-4 py-2.5 bg-[#050914]/90 hover:bg-[#0B1224] text-white border border-cyan-400/40 hover:border-cyan-300 shadow-[0_4px_24px_rgba(0,0,0,0.7),0_0_20px_rgba(0,212,255,0.25)] hover:shadow-[0_4px_30px_rgba(0,0,0,0.8),0_0_28px_rgba(0,212,255,0.45)] backdrop-blur-xl"
             }`}
           >
             <div className="relative flex items-center justify-center">
