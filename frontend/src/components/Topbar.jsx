@@ -3,6 +3,8 @@ import { useLocation, useNavigate, useParams, NavLink } from "react-router-dom";
 import {
   Search,
   Bell,
+  Bot,
+  Sparkles,
   Plus,
   Network,
   FileText,
@@ -336,6 +338,35 @@ export default function Topbar({ onOpenNewInvestigation }) {
               anchorRef={notifButtonRef}
             />
           </div>
+
+          {/* AI Intelligence Assistant Topbar Button */}
+          <button
+            id="topbar-ai-chat-btn"
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("tracex_toggle_chat"))}
+            title="Open TraceX Cyber AI Assistant"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-lg transition-all cursor-pointer"
+            style={{
+              background: "linear-gradient(135deg, rgba(0, 127, 168, 0.22) 0%, rgba(107, 33, 216, 0.25) 100%)",
+              border: "1px solid rgba(0, 212, 255, 0.35)",
+              color: "#00D4FF",
+              boxShadow: "0 0 10px rgba(0, 212, 255, 0.15)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.border = "1px solid rgba(0, 212, 255, 0.65)";
+              e.currentTarget.style.boxShadow = "0 0 16px rgba(0, 212, 255, 0.40)";
+              e.currentTarget.style.color = "#FFFFFF";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.border = "1px solid rgba(0, 212, 255, 0.35)";
+              e.currentTarget.style.boxShadow = "0 0 10px rgba(0, 212, 255, 0.15)";
+              e.currentTarget.style.color = "#00D4FF";
+            }}
+          >
+            <Bot className="w-3.5 h-3.5 text-cyan-300" />
+            <span className="hidden sm:inline font-mono">TraceX AI</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </button>
 
           {/* Officer profile avatar button — directly opens ProfilePanel */}
           <div className="relative" ref={dropdownRef}>
