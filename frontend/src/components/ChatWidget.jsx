@@ -264,8 +264,8 @@ export default function ChatWidget() {
       {/* ── Top-Right Corner Floating Launcher Button ── */}
       {!isOpen && (
         <div
-          className={`fixed right-6 z-40 font-sans transition-all duration-300 ${
-            isStandardMode ? "bottom-5 sm:bottom-6" : "top-20"
+          className={`z-40 font-sans transition-all duration-300 ${
+            isStandardMode ? "std-chat-launcher-wrap fixed" : "fixed right-6 top-20"
           }`}
         >
           <button

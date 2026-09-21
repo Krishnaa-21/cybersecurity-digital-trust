@@ -230,10 +230,11 @@
 .std-nav__link:hover { background: var(--std-navy-hover); }
 .std-nav__link[aria-current="page"] { background: var(--std-navy-darker); border-bottom-color: #fff; }
 .std-nav__action { display: flex; align-items: center; padding-block: 0.4rem; }
+@media (min-width: 768px) { .std-nav__action { margin-right: 11.5rem; } }
 @media (max-width: 767px) {
   .std-nav__list { width: 100%; }
   .std-nav__link { padding: 0.75rem 0.7rem; font-size: 0.875rem; }
-  .std-nav__action { width: 100%; padding-bottom: 0.7rem; }
+  .std-nav__action { width: 100%; padding-bottom: 0.7rem; margin-right: 0; }
   .std-nav__action .std-btn { width: 100%; }
   .std-identity__tools, .std-identity__user { width: 100%; }
   .std-identity__user { justify-content: space-between; }
@@ -470,6 +471,20 @@
 @media (max-width: 899px) { .std-footer__base { padding-bottom: 3.5rem; } }
 
 /* ── 14. AI assistant launcher (shared component, Standard placement) ───── */
+[data-mode="standard"] .std-chat-launcher-wrap {
+  position: fixed;
+  top: 7.25rem;
+  right: max(1.5rem, calc((100vw - 80rem) / 2 + 1.5rem));
+  z-index: 40;
+}
+
+@media (max-width: 767px) {
+  [data-mode="standard"] .std-chat-launcher-wrap {
+    top: 0.55rem;
+    right: 0.75rem;
+  }
+}
+
 [data-mode="standard"] #tracex-ai-chatbot-launcher { border-radius: 999px; }
 
 /* ── 15. Network diagram (existing interactive component, formal skin) ──── */
@@ -556,6 +571,7 @@
   [data-mode="standard"] .std-footer__notice,
   [data-mode="standard"] .std-pagehead__actions,
   [data-mode="standard"] .std-breadcrumb,
+  [data-mode="standard"] .std-chat-launcher-wrap,
   [data-mode="standard"] #tracex-ai-chatbot-launcher { display: none !important; }
   [data-mode="standard"] .std-panel { break-inside: avoid; }
   [data-mode="standard"] .std-table-wrap--scroll { max-height: none; overflow: visible; }
