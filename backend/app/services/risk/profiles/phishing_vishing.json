@@ -1,0 +1,6 @@
+{
+  "spoofed_caller_pattern": 0.3,
+  "high_call_velocity": 0.25,
+  "shared_ip": 0.2,
+  "shared_imei": 0.25
+}

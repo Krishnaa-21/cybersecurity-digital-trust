@@ -1,0 +1,11 @@
+__pycache__/
+*.db
+.env
+node_modules/
+dist/
+backend/uploads/*
+myenv/
+.venv/
+venv/
+ENV/
+*.egg-info/

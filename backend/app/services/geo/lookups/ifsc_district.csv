@@ -1,0 +1,19 @@
+# NOTE: Sample subset for development and offline testing. Replace with full RBI IFSC directory in production.
+ifsc_prefix,bank_name,district
+SBIN0004,State Bank of India,Bhopal
+SBIN0001,State Bank of India,Indore
+SBIN0002,State Bank of India,Delhi NCR
+HDFC0001,HDFC Bank,Indore
+HDFC0002,HDFC Bank,Delhi NCR
+HDFC0003,HDFC Bank,Mumbai
+ICIC0000,ICICI Bank,Delhi NCR
+ICIC0001,ICICI Bank,Bhopal
+ICIC0002,ICICI Bank,Bengaluru
+PUNB0023,Punjab National Bank,Lucknow
+PUNB0011,Punjab National Bank,Delhi NCR
+BARB0BHO,Bank of Baroda,Bhopal
+BARB0IND,Bank of Baroda,Indore
+UTIB0000,Axis Bank,Jaipur
+UTIB0001,Axis Bank,Ahmedabad
+CNRB0001,Canara Bank,Bengaluru
+UBIN0530,Union Bank of India,Lucknow

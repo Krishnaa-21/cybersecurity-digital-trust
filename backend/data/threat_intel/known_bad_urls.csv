@@ -1,0 +1,12 @@
+# NOTE: Sample threat-intel feed for offline demonstration. Replace with real CERT-In, PhishTank, or ThreatConnect feeds in production.
+url,source,date_added
+http://verify-kyc-bank-portal.xyz/download/support_assistant.apk,CERT-In Advisory CIAD-2026-0041,2026-09-01
+http://cdn-update-auth.net/secure-pay?ref=TXN994102,State Cyber Cell Threat Feed,2026-09-02
+http://verify-kyc-bank-portal.xyz/login,CERT-In Advisory CIAD-2026-0041,2026-09-01
+http://fast-loan-kyc-portal.online/apply,NPCI Fraud Alert,2026-08-25
+http://sbi-rewards-redeem.in/claim,State Cyber Intelligence Unit,2026-08-28
+http://apk-support-desk.cc/install.apk,CBI Interpol Unit,2026-09-05
+http://electricity-bill-clearance.net/pay,State Electricity Discom Alert,2026-08-30
+http://epfo-kyc-validation.org/portal,CERT-In Phishing Monitor,2026-09-04
+http://refund-gateway-nodal.xyz/process,NPCI Alert Bulletin,2026-09-06
+http://pan-aadhar-link-urgency.co/auth,Cyber Crime Portal Nodal Feed,2026-09-08

@@ -1,0 +1,18 @@
+# NOTE: Sample subset for development and offline testing. Replace with full India Post PIN-to-district directory in production.
+pin_code_prefix,district
+462,Bhopal
+452,Indore
+482,Jabalpur
+474,Gwalior
+110,Delhi NCR
+226,Lucknow
+302,Jaipur
+400,Mumbai
+560,Bengaluru
+500,Hyderabad
+600,Chennai
+700,Kolkata
+380,Ahmedabad
+160,Chandigarh
+201,Noida / Ghaziabad
+122,Gurugram

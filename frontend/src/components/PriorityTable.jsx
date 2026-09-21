@@ -1,0 +1,407 @@
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, ShieldAlert, MapPin, Eye, EyeOff, Zap } from "lucide-react";
+import RiskTag from "./RiskTag";
+import { useMode } from "../context/ModeContext";
+
+const SCAM_TYPE_LABELS = {
+  digital_scam: "Digital Scam",
+  phishing_vishing: "Phishing / Vishing",
+  malicious_apk: "Malicious APK",
+};
+
+// Analysis Mode rail colors (neon)
+const RAIL_COLORS = {
+  critical: { color: "#FF3B5C", glow: "rgba(255,59,92,0.60)" },
+  high:     { color: "#F87171", glow: "rgba(248,113,113,0.50)" },
+  medium:   { color: "#F59E0B", glow: "rgba(245,158,11,0.50)" },
+  med:      { color: "#F59E0B", glow: "rgba(245,158,11,0.50)" },
+  low:      { color: "#10B981", glow: "rgba(16,185,129,0.40)" },
+};
+
+// Standard Mode rail colors (flat, no glow)
+const GOV_RAIL_COLORS = {
+  critical: "#B91C1C",
+  high:     "#DC2626",
+  medium:   "#D97706",
+  med:      "#D97706",
+  low:      "#047857",
+};
+
+function scoreOf(c) {
+  if (c.risk_score !== null && c.risk_score !== undefined) return Math.round(c.risk_score);
+  const level = (c.risk_level || "").toLowerCase();
+  if (level === "critical") return 95;
+  if (level === "high") return 80;
+  if (level === "medium" || level === "med") return 50;
+  if (level === "low") return 20;
+  return 0;
+}
+
+function ScoreBar({ score, riskLevel, isStandardMode }) {
+  const level = (riskLevel || "").toLowerCase();
+  const color = isStandardMode
+    ? (level === "critical" || level === "high" ? "#DC2626"
+      : level === "medium" || level === "med" ? "#D97706"
+      : "#047857")
+    : (level === "critical" || level === "high" ? "#F87171"
+      : level === "medium" || level === "med" ? "#F59E0B"
+      : "#10B981");
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-[11px] font-mono" style={{ color }}>{score}</span>
+      <div
+        className="w-12 h-1.5 rounded-full overflow-hidden"
+        style={{ background: isStandardMode ? "#E2E8F0" : "rgba(255,255,255,0.06)" }}
+      >
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${score}%`,
+            background: color,
+            boxShadow: isStandardMode ? "none" : `0 0 6px ${color}80`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function PriorityTable({ cases = [], isLoading = false, selectedDistrict = null }) {
+  const navigate = useNavigate();
+  const { isStandardMode } = useMode();
+  const [showAll, setShowAll] = useState(false);
+
+  const filteredCases = selectedDistrict
+    ? cases.filter((c) => (c.district || "").toLowerCase() === selectedDistrict.toLowerCase())
+    : cases;
+
+  const rankedCases = [...filteredCases].sort((a, b) => scoreOf(b) - scoreOf(a));
+  const displayedCases = showAll ? rankedCases : rankedCases.slice(0, 5);
+
+  if (isLoading) {
+    return isStandardMode ? (
+      <div className="gov-loading-table">
+        <div className="flex flex-col items-center gap-2">
+          <span className="font-mono text-[12px]">Loading high-priority incident queue…</span>
+        </div>
+      </div>
+    ) : (
+      <div
+        className="py-12 text-center text-[13px] rounded-md"
+        style={{
+          background: "rgba(8,14,28,0.60)",
+          border: "1px solid rgba(0,212,255,0.12)",
+          color: "rgba(148,163,184,0.60)",
+        }}
+      >
+        <div className="animate-pulse flex flex-col items-center gap-2">
+          <Zap className="w-5 h-5" style={{ color: "rgba(0,212,255,0.40)" }} />
+          <span className="font-mono text-[12px]">Loading high-priority incident queue...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cases.length) {
+    return isStandardMode ? (
+      <div className="gov-empty-table">
+        No cases registered yet. Click &quot;+ Register Cyber Incident&quot; to begin.
+      </div>
+    ) : (
+      <div
+        className="py-12 text-center text-[13px] rounded-md"
+        style={{
+          background: "rgba(8,14,28,0.60)",
+          border: "1px solid rgba(0,212,255,0.12)",
+          color: "rgba(148,163,184,0.60)",
+        }}
+      >
+        No cases registered yet. Click &quot;+ New investigation&quot; above to begin.
+      </div>
+    );
+  }
+
+  // ── Standard / Government Mode ────────────────────────────────────────────
+  if (isStandardMode) {
+    return (
+      <div className="space-y-3">
+        {/* Table Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <h2 className="gov-table-header">
+              {selectedDistrict
+                ? `District: ${selectedDistrict} (${filteredCases.length})`
+                : "Priority Incident Queue"}
+            </h2>
+            <span className="gov-case-count-badge">{filteredCases.length} active</span>
+          </div>
+          {rankedCases.length > 5 && (
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="gov-show-all-btn"
+            >
+              {showAll ? (
+                <><EyeOff className="w-3.5 h-3.5" /><span>Show top 5 only</span></>
+              ) : (
+                <><Eye className="w-3.5 h-3.5" /><span>View all ({rankedCases.length}) cases</span></>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Table */}
+        <div className="gov-case-table">
+          {displayedCases.map((c, idx) => {
+            const scamLabel = SCAM_TYPE_LABELS[c.scam_type] || c.scam_type;
+            const score = scoreOf(c);
+            const isTop1 = idx === 0 && !selectedDistrict;
+            const riskKey = (c.risk_level || "").toLowerCase();
+            const railColor = GOV_RAIL_COLORS[riskKey] || GOV_RAIL_COLORS.low;
+
+            return (
+              <div
+                key={c.id}
+                onClick={() => navigate(`/cases/${c.id}/graph`)}
+                className="gov-case-row flex items-stretch gap-0 cursor-pointer relative"
+              >
+                {/* Risk rail — solid flat color */}
+                <div
+                  className="w-1 flex-shrink-0"
+                  style={{ background: railColor }}
+                />
+
+                {/* Row grid */}
+                <div
+                  className="flex-1 grid min-w-0 px-3 py-3.5 gap-x-3 gap-y-1.5 items-center"
+                  style={{ gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,2fr) auto" }}
+                >
+                  {/* Col 1: Case ID + victim */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    {isTop1 && (
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ background: "#B91C1C" }}
+                        title="Highest risk case"
+                      />
+                    )}
+                    <div className="min-w-0 overflow-hidden">
+                      <div className="gov-case-number truncate">{c.case_number}</div>
+                      <div className="font-semibold text-[#0F172A] text-[12px] leading-tight truncate">{c.victim_name}</div>
+                    </div>
+                  </div>
+
+                  {/* Col 2: Risk badge + score bar */}
+                  <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                    <RiskTag level={c.risk_level} />
+                    {c.risk_score !== null && c.risk_score !== undefined && (
+                      <div className="hidden lg:block flex-shrink-0">
+                        <ScoreBar score={score} riskLevel={c.risk_level} isStandardMode />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Col 3: Rationale */}
+                  <div className="min-w-0 overflow-hidden text-[12px]">
+                    {c.why_flagged ? (
+                      <span className="flex items-center gap-1.5 text-[#475569] min-w-0">
+                        <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0 text-[#D97706]" />
+                        <span className="truncate">{c.why_flagged}</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-[#475569] min-w-0">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#64748B]" />
+                        <span className="truncate">{c.district || "Pending"}</span>
+                        <span className="hidden xl:inline text-[#94A3B8] flex-shrink-0">·</span>
+                        <span className="hidden xl:inline truncate text-[#94A3B8]">{scamLabel}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Col 4: Investigate button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/cases/${c.id}/graph`); }}
+                    className="gov-investigate-btn"
+                  >
+                    <span>Open Case</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Analysis Mode (original) ──────────────────────────────────────────────
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <h2 className="text-[12px] uppercase tracking-widest font-mono font-semibold" style={{ color: "rgba(0,212,255,0.80)" }}>
+            {selectedDistrict
+              ? `District: ${selectedDistrict} (${filteredCases.length})`
+              : `Priority Incident Queue`}
+          </h2>
+          <span
+            className="text-[10.5px] font-mono px-2 py-0.5 rounded"
+            style={{
+              background: "rgba(0,212,255,0.06)",
+              border: "1px solid rgba(0,212,255,0.18)",
+              color: "rgba(0,212,255,0.60)",
+            }}
+          >
+            {filteredCases.length} active
+          </span>
+        </div>
+
+        {rankedCases.length > 5 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-[12px] font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            style={{ color: "rgba(0,212,255,0.70)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#00D4FF")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(0,212,255,0.70)")}
+          >
+            {showAll ? <><EyeOff className="w-3.5 h-3.5" /><span>Show top 5 only</span></>
+              : <><Eye className="w-3.5 h-3.5" /><span>View all ({rankedCases.length}) cases</span></>}
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div
+        className="rounded-md overflow-hidden"
+        style={{
+          background: "rgba(6,10,22,0.70)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(0,212,255,0.12)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,212,255,0.06)",
+        }}
+      >
+        {displayedCases.map((c, idx) => {
+          const scamLabel = SCAM_TYPE_LABELS[c.scam_type] || c.scam_type;
+          const score = scoreOf(c);
+          const isTop1 = idx === 0 && !selectedDistrict;
+          const riskKey = (c.risk_level || "").toLowerCase();
+          const rail = RAIL_COLORS[riskKey] || RAIL_COLORS.low;
+
+          return (
+            <div
+              key={c.id}
+              onClick={() => navigate(`/cases/${c.id}/graph`)}
+              className="flex items-stretch gap-0 cursor-pointer transition-all group relative"
+              style={{ borderBottom: "1px solid rgba(0,212,255,0.07)" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,212,255,0.04)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+            >
+              {/* Risk rail — colored gradient bar on left */}
+              <div
+                className="w-1 flex-shrink-0"
+                style={{
+                  background: `linear-gradient(180deg, ${rail.color}, transparent)`,
+                  boxShadow: `2px 0 8px ${rail.glow}`,
+                }}
+              />
+
+              {/* Scan line on hover */}
+              <div
+                className="absolute left-0 right-0 h-px pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{
+                  background: `linear-gradient(90deg, transparent, ${rail.color}40, transparent)`,
+                  top: "50%",
+                }}
+              />
+
+              {/* Row grid */}
+              <div className="flex-1 grid min-w-0 px-3 py-3.5 gap-x-3 gap-y-1.5 items-center"
+                style={{ gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,2fr) auto" }}
+              >
+                {/* Col 1: Case ID + victim */}
+                <div className="flex items-center gap-2 min-w-0">
+                  {isTop1 && (
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{
+                        background: "#FF3B5C",
+                        boxShadow: "0 0 8px rgba(255,59,92,0.90)",
+                        animation: "pulse-red 1.5s ease-in-out infinite",
+                      }}
+                      title="Highest risk case"
+                    />
+                  )}
+                  <div className="min-w-0 overflow-hidden">
+                    <div
+                      className="font-mono font-bold text-[12.5px] leading-tight truncate"
+                      style={{ color: "#00D4FF", textShadow: "0 0 10px rgba(0,212,255,0.40)" }}
+                    >
+                      {c.case_number}
+                    </div>
+                    <div className="font-semibold text-text text-[12px] leading-tight truncate">{c.victim_name}</div>
+                  </div>
+                </div>
+
+                {/* Col 2: Risk badge + score bar */}
+                <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                  <RiskTag level={c.risk_level} />
+                  {c.risk_score !== null && c.risk_score !== undefined && (
+                    <div className="hidden lg:block flex-shrink-0">
+                      <ScoreBar score={score} riskLevel={c.risk_level} isStandardMode={false} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Col 3: Rationale */}
+                <div className="min-w-0 overflow-hidden text-[12px]">
+                  {c.why_flagged ? (
+                    <span className="flex items-center gap-1.5 text-textDim min-w-0">
+                      <ShieldAlert className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#F59E0B" }} />
+                      <span className="truncate">{c.why_flagged}</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-textDim min-w-0">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "rgba(0,212,255,0.40)" }} />
+                      <span className="truncate">{c.district || "Pending"}</span>
+                      <span className="hidden xl:inline text-textFaint flex-shrink-0">·</span>
+                      <span className="hidden xl:inline truncate text-textFaint">{scamLabel}</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Col 4: Investigate button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(`/cases/${c.id}/graph`); }}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-mono font-semibold rounded transition-all cursor-pointer"
+                  style={{
+                    background: "rgba(0,212,255,0.06)",
+                    border: "1px solid rgba(0,212,255,0.25)",
+                    color: "#00D4FF",
+                    whiteSpace: "nowrap",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(0,212,255,0.15)";
+                    e.currentTarget.style.boxShadow = "0 0 12px rgba(0,212,255,0.30)";
+                    e.currentTarget.style.borderColor = "rgba(0,212,255,0.50)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(0,212,255,0.06)";
+                    e.currentTarget.style.boxShadow = "none";
+                    e.currentTarget.style.borderColor = "rgba(0,212,255,0.25)";
+                  }}
+                >
+                  <span>Investigate</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

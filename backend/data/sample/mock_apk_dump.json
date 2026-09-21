@@ -1,0 +1,52 @@
+[
+  {
+    "package_name": "com.support.bank.kycassistant",
+    "version": "2.4.1",
+    "imei": "860123456789012",
+    "c2_server": "198.51.100.42",
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.RECEIVE_SMS",
+      "android.permission.READ_SMS",
+      "android.permission.BIND_ACCESSIBILITY_SERVICE",
+      "android.permission.READ_CALL_LOG",
+      "android.permission.READ_CONTACTS"
+    ],
+    "contacted_ips": [
+      "198.51.100.42",
+      "203.0.113.195",
+      "192.0.2.77"
+    ]
+  },
+  {
+    "package_name": "org.security.update.service",
+    "version": "1.0.0",
+    "imei": "860123456789012",
+    "c2_server": "203.0.113.88",
+    "permissions": [
+      "android.permission.INTERNET",
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.RECEIVE_SMS",
+      "android.permission.BIND_ACCESSIBILITY_SERVICE"
+    ],
+    "contacted_ips": [
+      "203.0.113.88",
+      "198.51.100.12"
+    ]
+  },
+  {
+    "package_name": "com.quick.loan.instantcredit",
+    "version": "3.1.2",
+    "imei": "358765098765432",
+    "c2_server": "192.0.2.110",
+    "permissions": [
+      "android.permission.READ_CALL_LOG",
+      "android.permission.READ_CONTACTS",
+      "android.permission.INTERNET"
+    ],
+    "contacted_ips": [
+      "192.0.2.110",
+      "203.0.113.104"
+    ]
+  }
+]

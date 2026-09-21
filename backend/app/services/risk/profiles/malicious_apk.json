@@ -1,0 +1,6 @@
+{
+  "high_risk_permissions": 0.35,
+  "known_c2_server": 0.3,
+  "shared_imei": 0.2,
+  "shared_ip": 0.15
+}

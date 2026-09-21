@@ -1,0 +1,6 @@
+{
+  "multi_hop_speed": 0.35,
+  "shared_upi_handle": 0.3,
+  "shared_account": 0.2,
+  "shared_ip": 0.15
+}
