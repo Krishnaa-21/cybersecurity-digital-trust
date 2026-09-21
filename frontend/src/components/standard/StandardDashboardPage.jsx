@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import apiClient, { getOfficer, setOfficer } from "../../api/client";
+import { useMode } from "../../context/ModeContext";
+import { t } from "../../config/standardPortal";
 import {
   Breadcrumb,
   PageHeader,
@@ -12,23 +14,12 @@ import {
   TableMessage,
   riskScoreOf,
   scamLabel,
+  evidenceCategoryLabel,
   formatDate,
-  EVIDENCE_CATEGORY_LABELS,
 } from "./StandardUI";
 
-/* ── Evidence processing status → formal label / tone ─────────────────── */
-const EVIDENCE_STATUS = {
-  queued: { label: "Queued", tone: "neutral" },
-  pending: { label: "Pending", tone: "medium" },
-  processing: { label: "Processing", tone: "info" },
-  completed: { label: "Indexed", tone: "low" },
-  indexed: { label: "Indexed", tone: "low" },
-  error: { label: "Error", tone: "high" },
-  failed: { label: "Error", tone: "high" },
-};
-
 /* ── 1. Headline statistics ───────────────────────────────────────────── */
-function StatsCards({ stats }) {
+function StatsCards({ stats, s }) {
   const high = stats.high_risk_cases ?? 0;
   const active = stats.active_cases ?? 0;
   const awaiting = stats.awaiting_correlation ?? 0;
@@ -36,19 +27,19 @@ function StatsCards({ stats }) {
 
   return (
     <StatCards
-      label="Case summary statistics"
+      label={s.caseSummaryStats}
       items={[
-        { label: "High-Risk Cases", value: high, alert: high > 0, alertText: "Requires attention", note: "Cases rated High risk" },
-        { label: "Active Case Load", value: active, note: "Cases not yet closed" },
-        { label: "Awaiting Correlation", value: awaiting, alert: awaiting > 0, alertText: "Requires attention", note: "Evidence uploaded, correlation pending" },
-        { label: "Closed This Month", value: closed, note: "Cases closed in the current month" },
+        { label: s.highRiskCases, value: high, alert: high > 0, alertText: s.requiresAttention, note: s.highRiskCasesNote },
+        { label: s.activeCaseLoad, value: active, note: s.activeCaseLoadNote },
+        { label: s.awaitingCorrelation, value: awaiting, alert: awaiting > 0, alertText: s.requiresAttention, note: s.awaitingCorrelationNote },
+        { label: s.closedThisMonth, value: closed, note: s.closedThisMonthNote },
       ]}
     />
   );
 }
 
 /* ── 2. Priority case register ────────────────────────────────────────── */
-function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
+function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict, s, language }) {
   const [showAll, setShowAll] = useState(false);
 
   const filtered = selectedDistrict
@@ -58,14 +49,18 @@ function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
   const displayed = showAll ? ranked : ranked.slice(0, 5);
 
   const emptyText = !cases.length
-    ? "No cases have been registered yet. Use “Register New Case” to begin."
-    : "No cases are recorded for the selected district.";
+    ? s.noCasesRegisteredYet
+    : s.noCasesForDistrict;
 
   return (
     <Panel
       id="case-register"
-      title={selectedDistrict ? `Priority Case Register — District: ${selectedDistrict}` : "Priority Case Register"}
-      meta={isLoading ? "Loading…" : `Showing ${displayed.length} of ${filtered.length} case(s), ranked by risk score`}
+      title={selectedDistrict ? `${s.priorityCaseRegisterDistrict} ${selectedDistrict}` : s.priorityCaseRegister}
+      meta={
+        isLoading
+          ? s.loadingGeneral
+          : s.showingCasesCount.replace("{count}", displayed.length).replace("{total}", filtered.length)
+      }
       flush
     >
       {(selectedDistrict || ranked.length > 5) && (
@@ -73,17 +68,17 @@ function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
           {selectedDistrict && (
             <>
               <span>
-                Filter applied: <strong>{selectedDistrict}</strong>
+                {s.filterApplied} <strong>{selectedDistrict}</strong>
               </span>
               <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={onClearDistrict}>
-                Clear filter
+                {s.clearFilter}
               </button>
             </>
           )}
           <span className="std-toolbar__spacer" />
           {ranked.length > 5 && (
             <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={() => setShowAll(!showAll)}>
-              {showAll ? "Show top 5 only" : `View all ${ranked.length} cases`}
+              {showAll ? s.showTop5Only : s.viewAllCases.replace("{count}", ranked.length)}
             </button>
           )}
         </div>
@@ -91,23 +86,23 @@ function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
 
       <div className="std-table-wrap">
         <table className="std-table">
-          <caption className="std-visually-hidden">Priority case register</caption>
+          <caption className="std-visually-hidden">{s.priorityCaseRegister}</caption>
           <thead>
             <tr>
-              <th scope="col">S.No.</th>
-              <th scope="col">Case No.</th>
-              <th scope="col">Complainant (Victim)</th>
-              <th scope="col">Category</th>
-              <th scope="col">District</th>
-              <th scope="col">Risk Level</th>
-              <th scope="col" className="num">Risk Score</th>
-              <th scope="col" className="wide">Grounds for Flagging</th>
-              <th scope="col"><span className="std-visually-hidden">Action</span></th>
+              <th scope="col">{s.thSNo}</th>
+              <th scope="col">{s.thCaseNo}</th>
+              <th scope="col">{s.thComplainant}</th>
+              <th scope="col">{s.thCategory}</th>
+              <th scope="col">{s.thDistrict}</th>
+              <th scope="col">{s.thRiskLevel}</th>
+              <th scope="col" className="num">{s.thRiskScore}</th>
+              <th scope="col" className="wide">{s.thGrounds}</th>
+              <th scope="col"><span className="std-visually-hidden">{s.thAction}</span></th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <TableMessage colSpan={9}>Loading case register…</TableMessage>
+              <TableMessage colSpan={9}>{s.loadingRegister}</TableMessage>
             ) : displayed.length === 0 ? (
               <TableMessage colSpan={9}>{emptyText}</TableMessage>
             ) : (
@@ -118,16 +113,16 @@ function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
                     <Link className="std-link std-id" to={`/cases/${c.id}/graph`}>{c.case_number}</Link>
                   </td>
                   <td>{c.victim_name}</td>
-                  <td>{scamLabel(c.scam_type)}</td>
-                  <td>{c.district || "Pending"}</td>
-                  <td><RiskBadge level={c.risk_level} /></td>
+                  <td>{scamLabel(c.scam_type, language)}</td>
+                  <td>{c.district || s.pendingValue}</td>
+                  <td><RiskBadge level={c.risk_level} language={language} /></td>
                   <td className="num">
                     {c.risk_score !== null && c.risk_score !== undefined ? `${riskScoreOf(c)} / 100` : "—"}
                   </td>
                   <td>{c.why_flagged || "—"}</td>
                   <td className="nowrap">
                     <Link className="std-btn std-btn--secondary std-btn--sm" to={`/cases/${c.id}/graph`}>
-                      View Case
+                      {s.viewCase}
                     </Link>
                   </td>
                 </tr>
@@ -141,39 +136,40 @@ function CaseRegister({ cases, isLoading, selectedDistrict, onClearDistrict }) {
 }
 
 /* ── 3. Evidence processing register ──────────────────────────────────── */
-function EvidenceRegister({ files, isLoading }) {
+function EvidenceRegister({ files, isLoading, s, language }) {
   return (
     <Panel
       id="evidence-register"
-      title="Evidence Processing Register"
-      meta={isLoading ? "Loading…" : `${files.length} file(s) in queue`}
+      title={s.evidenceRegisterTitle}
+      meta={isLoading ? s.loadingGeneral : s.evidenceFilesQueue.replace("{count}", files.length)}
       flush
-      footer="Every uploaded file is automatically hashed (SHA-256), parsed and indexed on ingestion to preserve the chain of custody."
+      footer={s.evidenceFooterNotice}
     >
       <div className="std-table-wrap std-table-wrap--scroll">
         <table className="std-table">
-          <caption className="std-visually-hidden">Evidence files awaiting processing</caption>
+          <caption className="std-visually-hidden">{s.evidenceRegisterTitle}</caption>
           <thead>
             <tr>
-              <th scope="col">S.No.</th>
-              <th scope="col">File Name</th>
-              <th scope="col">Case No.</th>
-              <th scope="col">Category</th>
-              <th scope="col" className="num">Rows</th>
-              <th scope="col">SHA-256 Hash</th>
-              <th scope="col">Status</th>
-              <th scope="col">Uploaded</th>
+              <th scope="col">{s.thSNo}</th>
+              <th scope="col">{s.thFileName}</th>
+              <th scope="col">{s.thCaseNo}</th>
+              <th scope="col">{s.thCategory}</th>
+              <th scope="col" className="num">{s.thRows}</th>
+              <th scope="col">{s.thSha256}</th>
+              <th scope="col">{s.thStatus}</th>
+              <th scope="col">{s.thUploaded}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <TableMessage colSpan={8}>Loading evidence register…</TableMessage>
+              <TableMessage colSpan={8}>{s.loadingEvidenceRegister}</TableMessage>
             ) : files.length === 0 ? (
-              <TableMessage colSpan={8}>No evidence files are awaiting processing.</TableMessage>
+              <TableMessage colSpan={8}>{s.noEvidenceAwaiting}</TableMessage>
             ) : (
               files.map((f, idx) => {
                 const statusKey = String(f.upload_status || f.status || "pending").toLowerCase();
-                const status = EVIDENCE_STATUS[statusKey] || EVIDENCE_STATUS.pending;
+                const statusLabel = s.evidenceStatuses[statusKey] || s.evidenceStatuses.pending;
+                const statusTone = statusKey === "error" || statusKey === "failed" ? "high" : statusKey === "processing" ? "info" : statusKey === "completed" || statusKey === "indexed" ? "low" : "medium";
                 const category = f.evidence_category || f.file_type;
                 return (
                   <tr key={f.id || idx}>
@@ -182,11 +178,11 @@ function EvidenceRegister({ files, isLoading }) {
                       {f.original_filename || f.filename || f.name || `evidence-${idx + 1}`}
                     </td>
                     <td className="nowrap std-id">{f.case_number || "—"}</td>
-                    <td>{EVIDENCE_CATEGORY_LABELS[category] || (category ? String(category).toUpperCase() : "—")}</td>
+                    <td>{evidenceCategoryLabel(category, language)}</td>
                     <td className="num">{f.row_count ?? "—"}</td>
-                    <td className="std-hash">{f.sha256_hash || f.sha256 || f.hash || "Hash pending"}</td>
-                    <td><StatusBadge tone={status.tone}>{status.label}</StatusBadge></td>
-                    <td className="nowrap">{formatDate(f.uploaded_at)}</td>
+                    <td className="std-hash">{f.sha256_hash || f.sha256 || f.hash || s.hashPending}</td>
+                    <td><StatusBadge tone={statusTone}>{statusLabel}</StatusBadge></td>
+                    <td className="nowrap">{formatDate(f.uploaded_at, false, language)}</td>
                   </tr>
                 );
               })
@@ -199,7 +195,7 @@ function EvidenceRegister({ files, isLoading }) {
 }
 
 /* ── 4. District-wise case distribution ───────────────────────────────── */
-function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDistrict }) {
+function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDistrict, s, language }) {
   const [filterLevel, setFilterLevel] = useState("all");
 
   const rows = (heatmap || [])
@@ -210,52 +206,58 @@ function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDi
   return (
     <Panel
       id="district-distribution"
-      title="District-wise Case Distribution"
-      meta="Jurisdictional fraud density"
+      title={s.districtDistTitle}
+      meta={s.districtDistMeta}
       flush
-      footer="Density levels — Low: 1–2 cases · Medium: 3–5 cases · High: 6 or more cases. District resolution uses locally bundled IFSC and postal PIN lookups (no external services)."
+      footer={s.districtDistFooter}
     >
       <div className="std-toolbar">
         <span>
           {isLoading ? (
-            "Loading district telemetry…"
+            s.loadingDistrictTelemetry
           ) : top ? (
-            <>
-              Primary concentration in <strong>{top.district}</strong> ({top.case_count} case{top.case_count === 1 ? "" : "s"}) across{" "}
-              {heatmap.length} jurisdiction{heatmap.length === 1 ? "" : "s"}.
-            </>
+            language === "hi" ? (
+              <>
+                {heatmap.length} क्षेत्राधिकारों में से प्रमुख सांद्रता <strong>{top.district}</strong> ({top.case_count} प्रकरण) में है।
+              </>
+            ) : (
+              <>
+                Primary concentration in <strong>{top.district}</strong> ({top.case_count} case{top.case_count === 1 ? "" : "s"}) across{" "}
+                {heatmap.length} jurisdiction{heatmap.length === 1 ? "" : "s"}.
+              </>
+            )
           ) : (
-            "District data is resolved from static IFSC and postal PIN databases."
+            s.districtDefaultTelemetry
           )}
         </span>
         <span className="std-toolbar__spacer" />
-        <label htmlFor="std-density-filter">Density level:</label>
+        <label htmlFor="std-density-filter">{s.densityLevelLabel}</label>
         <select id="std-density-filter" className="std-select" value={filterLevel} onChange={(e) => setFilterLevel(e.target.value)}>
-          <option value="all">All levels</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
+          <option value="all">{s.allLevels}</option>
+          <option value="high">{s.levelHigh}</option>
+          <option value="medium">{s.levelMedium}</option>
+          <option value="low">{s.levelLow}</option>
         </select>
       </div>
 
       <div className="std-table-wrap">
         <table className="std-table">
-          <caption className="std-visually-hidden">Cases by district</caption>
+          <caption className="std-visually-hidden">{s.districtDistTitle}</caption>
           <thead>
             <tr>
-              <th scope="col">S.No.</th>
-              <th scope="col">District</th>
-              <th scope="col" className="num">Cases</th>
-              <th scope="col">Density Level</th>
-              <th scope="col" style={{ width: "22%" }}>Relative Share</th>
-              <th scope="col">Filter</th>
+              <th scope="col">{s.thSNo}</th>
+              <th scope="col">{s.thDistrict}</th>
+              <th scope="col" className="num">{s.thCases}</th>
+              <th scope="col">{s.thDensityLevel}</th>
+              <th scope="col" style={{ width: "22%" }}>{s.thRelativeShare}</th>
+              <th scope="col">{s.thFilter}</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <TableMessage colSpan={6}>Loading district distribution…</TableMessage>
+              <TableMessage colSpan={6}>{s.loadingDistrictDistribution}</TableMessage>
             ) : rows.length === 0 ? (
-              <TableMessage colSpan={6}>No district data available for the selected density level.</TableMessage>
+              <TableMessage colSpan={6}>{s.noDistrictForDensity}</TableMessage>
             ) : (
               rows.map((item, idx) => {
                 const isSelected = selectedDistrict?.toLowerCase() === item.district.toLowerCase();
@@ -265,9 +267,9 @@ function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDi
                     <td>{idx + 1}</td>
                     <td><strong>{item.district}</strong></td>
                     <td className="num">{item.case_count}</td>
-                    <td><RiskBadge level={item.level || "low"} /></td>
+                    <td><RiskBadge level={item.level || "low"} language={language} /></td>
                     <td>
-                      <span className="std-bar" role="img" aria-label={`${percent}% of the highest district count`}>
+                      <span className="std-bar" role="img" aria-label={`${percent}%`}>
                         <span style={{ width: `${percent}%` }} />
                       </span>
                     </td>
@@ -278,7 +280,7 @@ function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDi
                         aria-pressed={isSelected}
                         onClick={() => onSelectDistrict(isSelected ? null : item.district)}
                       >
-                        {isSelected ? "Clear filter" : "Filter cases"}
+                        {isSelected ? s.clearFilter : s.filterCasesBtn}
                       </button>
                     </td>
                   </tr>
@@ -294,6 +296,8 @@ function DistrictDistribution({ heatmap, isLoading, selectedDistrict, onSelectDi
 
 /* ── Page ─────────────────────────────────────────────────────────────── */
 export default function StandardDashboardPage() {
+  const { language } = useMode();
+  const s = t(language);
 
   const [officer, setOfficerState] = useState(() => getOfficer() || {});
   const [stats, setStats] = useState({ high_risk_cases: 0, active_cases: 0, awaiting_correlation: 0, closed_this_month: 0 });
@@ -337,22 +341,27 @@ export default function StandardDashboardPage() {
     return () => window.removeEventListener("tracex_case_created", handleCaseCreated);
   }, []);
 
-  const todayStr = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const todayStr = new Date().toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
   const urgentCase = cases.find((c) => (c.risk_level || "").toLowerCase() === "critical" && c.freeze_recommended);
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: "Dashboard" }]} />
+      <Breadcrumb items={[{ label: s.home, to: "/" }, { label: s.dashboard }]} label={s.mainNav} />
 
       <PageHeader
-        title="Case Management Dashboard"
+        title={s.dashTitle}
         subtitle={
           <>
             {officer.station_name ? <>{officer.station_name} · </> : null}
-            Logged in as <strong>{officer.name || "Investigating Officer"}</strong>
+            {s.loggedInAs} <strong>{officer.name || s.investigatingOfficer}</strong>
             {officer.badge_id ? (
               <>
-                {" "}(Badge ID: <span className="std-mono">{officer.badge_id}</span>)
+                {" "}({s.badgeIdLabel}: <span className="std-mono">{officer.badge_id}</span>)
               </>
             ) : null}{" "}
             · {todayStr}
@@ -361,7 +370,7 @@ export default function StandardDashboardPage() {
         actions={
           <>
             <button type="button" className="std-btn std-btn--secondary" onClick={fetchDashboardData} disabled={isLoading}>
-              {isLoading ? "Refreshing…" : "Refresh Data"}
+              {isLoading ? s.refreshingData : s.refreshData}
             </button>
           </>
         }
@@ -370,33 +379,37 @@ export default function StandardDashboardPage() {
       {urgentCase && (
         <Notice
           tone="danger"
-          title={`URGENT ACTION REQUIRED — Case ${urgentCase.case_number} (${urgentCase.victim_name})`}
+          title={`${s.urgentActionRequired} — ${s.thCaseNo} ${urgentCase.case_number} (${urgentCase.victim_name})`}
           action={
             <Link className="std-btn std-btn--sm" to={`/cases/${urgentCase.id}/graph`}>
-              Take Action
+              {s.takeAction}
             </Link>
           }
         >
-          Freeze action is recommended.{urgentCase.why_flagged ? ` ${urgentCase.why_flagged}` : ""}
+          {s.freezeActionRecommended}{urgentCase.why_flagged ? ` ${urgentCase.why_flagged}` : ""}
         </Notice>
       )}
 
-      <StatsCards stats={stats} />
+      <StatsCards stats={stats} s={s} />
 
       <CaseRegister
         cases={cases}
         isLoading={isLoading}
         selectedDistrict={selectedDistrict}
         onClearDistrict={() => setSelectedDistrict(null)}
+        s={s}
+        language={language}
       />
 
-      <EvidenceRegister files={unprocessedEvidence} isLoading={isLoading} />
+      <EvidenceRegister files={unprocessedEvidence} isLoading={isLoading} s={s} language={language} />
 
       <DistrictDistribution
         heatmap={heatmap}
         isLoading={isLoading}
         selectedDistrict={selectedDistrict}
         onSelectDistrict={setSelectedDistrict}
+        s={s}
+        language={language}
       />
     </>
   );

@@ -1,44 +1,29 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import {
+  getScamLabel,
+  getEntityTypeLabel,
+  getCaseStatusLabel,
+  getEvidenceCategoryLabel,
+  getRiskLabel,
+  STRINGS,
+} from "../../config/standardPortal";
+import { useMode } from "../../context/ModeContext";
 
 /* ==========================================================================
    Shared presentational primitives for Standard Mode (government portal skin).
    Pure UI — no data fetching, no business logic.
    ========================================================================== */
 
-export const SCAM_TYPE_LABELS = {
-  digital_scam: "Digital Scam",
-  phishing_vishing: "Phishing / Vishing",
-  malicious_apk: "Malicious APK",
-};
+export const SCAM_TYPE_LABELS = STRINGS.en.scams;
+export const CASE_STATUS_LABELS = STRINGS.en.statuses;
+export const ENTITY_TYPE_LABELS = STRINGS.en.entities;
+export const EVIDENCE_CATEGORY_LABELS = STRINGS.en.evidenceCategories;
 
-export const CASE_STATUS_LABELS = {
-  open: "Open",
-  correlating: "Correlating",
-  under_review: "Under Review",
-  closed: "Closed",
-};
-
-export const ENTITY_TYPE_LABELS = {
-  upi_handle: "UPI Handle",
-  account: "Bank Account",
-  phone: "Phone",
-  imei: "IMEI / Device",
-  imsi: "SIM / IMSI",
-  ip_address: "IP Address",
-  apk_hash: "Malicious APK",
-  email: "Email",
-  url: "URL / Website",
-};
-
-export const EVIDENCE_CATEGORY_LABELS = {
-  telecom: "Telecom",
-  bank_upi: "Bank / UPI",
-  other: "Other Artifacts",
-};
-
-export const scamLabel = (v) => SCAM_TYPE_LABELS[v] || v || "—";
-export const entityTypeLabel = (v) => ENTITY_TYPE_LABELS[v] || (v ? String(v).replace(/_/g, " ") : "Entity");
+export const scamLabel = (v, lang = "en") => getScamLabel(v, lang);
+export const entityTypeLabel = (v, lang = "en") => getEntityTypeLabel(v, lang);
+export const caseStatusLabel = (v, lang = "en") => getCaseStatusLabel(v, lang);
+export const evidenceCategoryLabel = (v, lang = "en") => getEvidenceCategoryLabel(v, lang);
 
 /** Numeric score used for ranking — mirrors the Analysis Mode queue ordering. */
 export function riskScoreOf(c) {
@@ -51,11 +36,11 @@ export function riskScoreOf(c) {
   return 0;
 }
 
-export function formatDate(value, withTime = false) {
+export function formatDate(value, withTime = false, language = "en") {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-IN", {
+  return d.toLocaleDateString(language === "hi" ? "hi-IN" : "en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -149,12 +134,23 @@ export function Notice({ tone = "info", title, children, action, inline = false,
 
 /* ── Risk level badge (text + symbol + colour; never colour alone) ─────── */
 const RISK_CLASS = { critical: "critical", high: "high", medium: "medium", med: "medium", low: "low" };
-const RISK_LABEL = { critical: "Critical", high: "High", medium: "Medium", med: "Medium", low: "Low" };
 
-export function RiskBadge({ level }) {
+export function RiskBadge({ level, language: propLang }) {
+  let lang = propLang;
+  try {
+    if (!lang) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const modeCtx = useMode();
+      lang = modeCtx?.language || "en";
+    }
+  } catch {
+    lang = "en";
+  }
+
   const key = (level || "").toLowerCase();
-  if (!RISK_CLASS[key]) return <span className="std-badge std-badge--neutral">Unrated</span>;
-  return <span className={`std-badge std-badge--${RISK_CLASS[key]}`}>{RISK_LABEL[key]}</span>;
+  const label = getRiskLabel(key, lang);
+  if (!RISK_CLASS[key]) return <span className="std-badge std-badge--neutral">{label}</span>;
+  return <span className={`std-badge std-badge--${RISK_CLASS[key]}`}>{label}</span>;
 }
 
 /* ── Generic status badge ──────────────────────────────────────────────── */

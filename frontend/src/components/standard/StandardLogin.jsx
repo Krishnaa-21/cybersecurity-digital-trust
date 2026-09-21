@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient, setToken, setOfficer } from "../../api/client";
+import { useMode } from "../../context/ModeContext";
+import { t } from "../../config/standardPortal";
 import StandardUtilityBar from "./StandardUtilityBar";
 import StandardBranding from "./StandardBranding";
 import StandardFooter from "./StandardFooter";
@@ -9,6 +11,9 @@ import { Notice } from "./StandardUI";
 /** Standard Mode sign-in page. Same credentials flow as the Analysis Mode login. */
 export default function StandardLogin() {
   const navigate = useNavigate();
+  const { language } = useMode();
+  const s = t(language);
+
   const [badgeId, setBadgeId] = useState("MP-IO-4471");
   const [password, setPassword] = useState("demo1234");
   const [isLoading, setIsLoading] = useState(false);
@@ -17,7 +22,7 @@ export default function StandardLogin() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!badgeId.trim() || !password.trim()) {
-      setError("Please enter your Officer ID and password.");
+      setError(s.loginEmptyError);
       return;
     }
     setIsLoading(true);
@@ -29,12 +34,12 @@ export default function StandardLogin() {
         if (data.officer) setOfficer(data.officer);
         navigate("/", { replace: true });
       } else {
-        throw new Error("Invalid response from authorization server");
+        throw new Error(s.loginDefaultError);
       }
     } catch (err) {
-      let msg = err.message || "Authentication failed. Check your badge ID and password.";
+      let msg = err.message || s.loginDefaultError;
       if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || err.name === "TypeError") {
-        msg = "Unable to reach the TraceX server. Please check your connection and try again.";
+        msg = s.loginNetworkError;
       }
       setError(msg);
     } finally {
@@ -44,7 +49,7 @@ export default function StandardLogin() {
 
   return (
     <div className="std-shell">
-      <a className="std-skip" href="#std-main">Skip to main content</a>
+      <a className="std-skip" href="#std-main">{s.skip}</a>
       <StandardUtilityBar />
       <div className="std-identity">
         <div className="std-container std-identity__inner">
@@ -56,42 +61,41 @@ export default function StandardLogin() {
         <div className="std-container">
           <div className="std-pagehead">
             <div>
-              <h1>Officer Sign-In</h1>
-              <p>Authorised investigating officers only.</p>
+              <h1>{s.loginTitle}</h1>
+              <p>{s.loginSub}</p>
             </div>
           </div>
 
           <div className="std-login">
             <section className="std-panel" aria-labelledby="std-notice-title">
               <div className="std-panel__head">
-                <h2 className="std-panel__title" id="std-notice-title">Important Notice</h2>
+                <h2 className="std-panel__title" id="std-notice-title">{s.loginNoticeTitle}</h2>
               </div>
               <div className="std-panel__body">
                 <ul className="std-list">
-                  <li>This system contains sensitive investigative information and is restricted to authorised officers.</li>
-                  <li>All access and activity is logged and monitored.</li>
-                  <li>Unauthorised access, disclosure or misuse is punishable under applicable law.</li>
-                  <li>Sign out and close the browser when you leave your workstation.</li>
+                  {s.loginNoticeList.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
                 </ul>
               </div>
             </section>
 
             <section className="std-panel std-login__signin" aria-labelledby="std-login-title">
               <div className="std-panel__head">
-                <h2 className="std-panel__title" id="std-login-title">Sign in to your account</h2>
+                <h2 className="std-panel__title" id="std-login-title">{s.loginPanelTitle}</h2>
               </div>
               <form className="std-panel__body" onSubmit={handleSubmit} noValidate>
-                {error && <Notice tone="danger" inline title="Sign-in failed">{error}</Notice>}
+                {error && <Notice tone="danger" inline title={s.loginFailedTitle}>{error}</Notice>}
                 <div className="std-field">
-                  <label className="std-label" htmlFor="std-badge">Officer / Badge ID</label>
+                  <label className="std-label" htmlFor="std-badge">{s.loginOfficerIdLabel}</label>
                   <input id="std-badge" className="std-input std-mono" autoComplete="username" value={badgeId} onChange={(e) => setBadgeId(e.target.value)} />
                 </div>
                 <div className="std-field">
-                  <label className="std-label" htmlFor="std-password">Password</label>
+                  <label className="std-label" htmlFor="std-password">{s.loginPasswordLabel}</label>
                   <input id="std-password" type="password" className="std-input" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <button type="submit" className="std-btn" disabled={isLoading}>
-                  {isLoading ? "Authenticating…" : "Secure sign-in"}
+                  {isLoading ? s.loginAuthenticating : s.loginSubmit}
                 </button>
               </form>
             </section>

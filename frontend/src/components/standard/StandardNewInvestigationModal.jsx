@@ -2,19 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../api/client";
-import { Notice, StatusBadge, EVIDENCE_CATEGORY_LABELS } from "./StandardUI";
-
-const SCAM_OPTIONS = [
-  { id: "digital_scam", title: "Digital Scam", desc: "UPI fraud, fraudulent loan apps, part-time job and investment tasks" },
-  { id: "phishing_vishing", title: "Phishing / Vishing", desc: "SIM swap, fake KYC calls, caller ID spoofing and bank impersonation" },
-  { id: "malicious_apk", title: "Malicious APK", desc: "Trojanized APKs, SMS forwarders, accessibility service abuse and C2 beacons" },
-];
-
-const UPLOAD_ZONES = [
-  { category: "telecom", label: "Telecom Evidence", sub: "CDR, IPDR, cell tower records", accept: ".csv,.xlsx,.xls,.txt,.log" },
-  { category: "bank_upi", label: "Bank & UPI Evidence", sub: "Statements, UPI handles", accept: ".csv,.xlsx,.xls,.txt,.log" },
-  { category: "other", label: "Other Artifacts", sub: "APK report, intelligence, URLs", accept: ".csv,.xlsx,.xls,.txt,.log,.json" },
-];
+import { useMode } from "../../context/ModeContext";
+import { t } from "../../config/standardPortal";
+import { Notice, StatusBadge, evidenceCategoryLabel } from "./StandardUI";
 
 /**
  * Standard Mode "Register New Case" dialog.
@@ -23,6 +13,8 @@ const UPLOAD_ZONES = [
  */
 export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseCreated }) {
   const navigate = useNavigate();
+  const { language } = useMode();
+  const s = t(language);
 
   const [victimName, setVictimName] = useState("");
   const [regDate, setRegDate] = useState(() => new Date().toISOString().split("T")[0]);
@@ -39,6 +31,18 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
 
   const fileRefs = { telecom: useRef(null), bank_upi: useRef(null), other: useRef(null) };
   const nameRef = useRef(null);
+
+  const scamOptions = [
+    { id: "digital_scam", ...s.regModalScamOptions.digital_scam },
+    { id: "phishing_vishing", ...s.regModalScamOptions.phishing_vishing },
+    { id: "malicious_apk", ...s.regModalScamOptions.malicious_apk },
+  ];
+
+  const uploadZones = [
+    { category: "telecom", ...s.regModalUploadZones.telecom, accept: ".csv,.xlsx,.xls,.txt,.log" },
+    { category: "bank_upi", ...s.regModalUploadZones.bank_upi, accept: ".csv,.xlsx,.xls,.txt,.log" },
+    { category: "other", ...s.regModalUploadZones.other, accept: ".csv,.xlsx,.xls,.txt,.log,.json" },
+  ];
 
   // Focus the first field when the dialog opens.
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
   const ensureCaseCreated = async () => {
     if (caseData) return caseData;
     if (!victimName.trim()) {
-      setError("Please enter the victim's name before uploading evidence.");
+      setError(s.regModalNameRequired);
       return null;
     }
     setIsCreatingCase(true);
@@ -73,7 +77,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
       if (onCaseCreated) onCaseCreated(created);
       return created;
     } catch (err) {
-      setError(err.message || "Failed to initialize case.");
+      setError(err.message || s.regModalInitFailed);
       return null;
     } finally {
       setIsCreatingCase(false);
@@ -110,7 +114,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
         },
       ]);
     } catch (err) {
-      setError(err.message || `Failed to upload ${file.name}`);
+      setError(err.message || s.regModalUploadFailed.replace("{filename}", file.name));
     } finally {
       setUploadingCategory(null);
       e.target.value = "";
@@ -119,7 +123,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
 
   const handleCorrelateAndOpen = async () => {
     if (!caseData) {
-      setError("Please create a case and upload evidence first.");
+      setError(s.regModalUploadFirst);
       return;
     }
 
@@ -144,7 +148,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
         state: { preloadedGraph: res?.graph, recordsByCategory: res?.records_by_category },
       });
     } catch (err) {
-      setError(err.message || "Correlation failed. Please check evidence files.");
+      setError(err.message || s.regModalCorrelateFailed);
       setIsCorrelating(false);
       setProgressStep(0);
       setProgressPercent(0);
@@ -163,32 +167,32 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
       <div className="std-modal" role="dialog" aria-modal="true" aria-labelledby="std-newcase-title">
         <div className="std-modal__head">
           <div>
-            <h2 id="std-newcase-title">Register New Case</h2>
-            <p>Register the incident and ingest multi-source evidence artifacts</p>
+            <h2 id="std-newcase-title">{s.regModalTitle}</h2>
+            <p>{s.regModalSub}</p>
           </div>
           <button type="button" className="std-modal__close" onClick={onClose} disabled={isCorrelating}>
             <X aria-hidden="true" size={14} />
-            Close
+            {s.regModalClose}
           </button>
         </div>
 
         <div className="std-modal__body">
           {error && (
-            <Notice tone="danger" inline title="Unable to proceed">
+            <Notice tone="danger" inline title={s.regModalUnableToProceed}>
               {error}
             </Notice>
           )}
 
           {caseData && (
-            <Notice tone="success" inline title="Case registered">
-              Case <strong className="std-mono">{caseData.case_number}</strong> — {caseData.victim_name}. Ready for evidence ingestion.
+            <Notice tone="success" inline title={s.regModalCaseCreated}>
+              {s.thCaseNo} <strong className="std-mono">{caseData.case_number}</strong> — {caseData.victim_name}. {s.regModalReadyForIngestion}
             </Notice>
           )}
 
           <div className="grid gap-x-4 sm:grid-cols-2">
             <div className="std-field">
               <label className="std-label" htmlFor="std-victim-name">
-                Victim&apos;s Full Name <span aria-hidden="true">*</span>
+                {s.regModalVictimNameLabel} <span aria-hidden="true">*</span>
               </label>
               <input
                 id="std-victim-name"
@@ -200,11 +204,11 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
                 disabled={!!caseData}
                 value={victimName}
                 onChange={(e) => setVictimName(e.target.value)}
-                placeholder="e.g. Rajesh Kumar"
+                placeholder={s.regModalVictimPlaceholder}
               />
             </div>
             <div className="std-field">
-              <label className="std-label" htmlFor="std-reg-date">Date of Case Registration</label>
+              <label className="std-label" htmlFor="std-reg-date">{s.regModalRegDateLabel}</label>
               <input
                 id="std-reg-date"
                 type="date"
@@ -217,8 +221,8 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
           </div>
 
           <fieldset className="std-fieldset" disabled={!!caseData}>
-            <legend>Scam Type Classification *</legend>
-            {SCAM_OPTIONS.map((opt) => (
+            <legend>{s.regModalScamTypeLegend}</legend>
+            {scamOptions.map((opt) => (
               <label key={opt.id} className="std-radio">
                 <input
                   type="radio"
@@ -236,12 +240,12 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
           </fieldset>
 
           <fieldset className="std-fieldset">
-            <legend>Ingest Evidence Files</legend>
+            <legend>{s.regModalIngestLegend}</legend>
             <p className="std-hint" style={{ marginTop: 0, marginBottom: "0.6rem" }}>
-              Accepted formats: CSV, XLSX, IPDR, CDR, forensic logs. Enter the victim&apos;s name first; the case is created on the first upload.
+              {s.regModalIngestHint}
             </p>
             <div className="std-upload">
-              {UPLOAD_ZONES.map((zone) => {
+              {uploadZones.map((zone) => {
                 const busy = uploadingCategory === zone.category;
                 return (
                   <div key={zone.category} className="std-upload__item">
@@ -262,7 +266,7 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
                       disabled={busy || isCreatingCase || isCorrelating}
                       onClick={() => fileRefs[zone.category].current?.click()}
                     >
-                      {busy ? "Ingesting…" : "Choose file"}
+                      {busy ? s.regModalIngesting : s.regModalChooseFile}
                     </button>
                   </div>
                 );
@@ -272,27 +276,27 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
 
           {uploadedFiles.length > 0 && (
             <div className="std-field">
-              <p className="std-label">Ingested Artifacts ({uploadedFiles.length})</p>
+              <p className="std-label">{s.regModalIngestedArtifactsCount.replace("{count}", uploadedFiles.length)}</p>
               <div className="std-table-wrap">
                 <table className="std-table">
-                  <caption className="std-visually-hidden">Ingested evidence artifacts</caption>
+                  <caption className="std-visually-hidden">{s.regModalIngestLegend}</caption>
                   <thead>
                     <tr>
-                      <th scope="col">File Name</th>
-                      <th scope="col">Category</th>
-                      <th scope="col" className="num">Rows</th>
-                      <th scope="col">SHA-256</th>
-                      <th scope="col">Status</th>
+                      <th scope="col">{s.thFileName}</th>
+                      <th scope="col">{s.thCategory}</th>
+                      <th scope="col" className="num">{s.thRows}</th>
+                      <th scope="col">{s.thSha256}</th>
+                      <th scope="col">{s.thStatus}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {uploadedFiles.map((f, i) => (
                       <tr key={f.id ?? i}>
                         <td className="std-mono" style={{ wordBreak: "break-all" }}>{f.filename}</td>
-                        <td>{EVIDENCE_CATEGORY_LABELS[f.category] || f.category}</td>
+                        <td>{evidenceCategoryLabel(f.category, language)}</td>
                         <td className="num">{f.rowCount ?? "—"}</td>
                         <td className="std-mono" title={f.sha256}>{truncateHash(f.sha256)}</td>
-                        <td><StatusBadge tone="low">Indexed</StatusBadge></td>
+                        <td><StatusBadge tone="low">{s.evidenceStatuses.indexed}</StatusBadge></td>
                       </tr>
                     ))}
                   </tbody>
@@ -304,15 +308,15 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
           {isCorrelating && (
             <div role="status" aria-live="polite">
               <p className="std-label">
-                Processing forensic correlation pipeline — {progressPercent}%
+                {s.regModalPipelineProgress.replace("{percent}", progressPercent)}
               </p>
               <div className="std-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}>
                 <span style={{ width: `${progressPercent}%` }} />
               </div>
               <ol className="std-steps">
-                <li data-state={stepState(1)}>1. Extracting entities</li>
-                <li data-state={stepState(2)}>2. Building connections</li>
-                <li data-state={stepState(3)}>3. Rendering graph</li>
+                <li data-state={stepState(1)}>{s.regModalStep1}</li>
+                <li data-state={stepState(2)}>{s.regModalStep2}</li>
+                <li data-state={stepState(3)}>{s.regModalStep3}</li>
               </ol>
             </div>
           )}
@@ -320,10 +324,10 @@ export default function StandardNewInvestigationModal({ isOpen, onClose, onCaseC
 
         <div className="std-modal__foot">
           <button type="button" className="std-btn std-btn--secondary" onClick={onClose} disabled={isCorrelating}>
-            Cancel
+            {s.regModalCancel}
           </button>
           <button type="button" className="std-btn" disabled={!caseData || isCorrelating} onClick={handleCorrelateAndOpen}>
-            {isCorrelating ? "Correlating entities…" : "Find connections & view graph"}
+            {isCorrelating ? s.regModalCorrelating : s.regModalSubmit}
           </button>
         </div>
       </div>

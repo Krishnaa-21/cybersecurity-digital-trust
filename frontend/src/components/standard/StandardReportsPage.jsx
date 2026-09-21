@@ -1,23 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import apiClient from "../../api/client";
+import { useMode } from "../../context/ModeContext";
+import { t } from "../../config/standardPortal";
 import { Breadcrumb, PageHeader, Panel, Notice, StatusBadge } from "./StandardUI";
 
-const BRIEF_CONTENTS = [
-  "30-second executive summary and risk progress score",
-  "Category breakdown matching the network graph colour language",
-  "Multi-hop correlation matrix with confidence scoring",
-  "Section 91 CrPC bank debit-freeze and telecom seizure directives",
-];
-
-const TAKEDOWN_CONTENTS = [
-  "Emergency 24-hour public resolution disabling and DNS sinkhole mandate",
-  "Cyber attack infrastructure table with priority CRITICAL / HIGH markings",
-  "180-day server access log preservation order under Section 67C IT Act",
-  "Threat intelligence and forensic justification for blocking",
-];
-
 export default function StandardReportsPage() {
+  const { language } = useMode();
+  const s = t(language);
   const { caseId } = useParams();
   const navigate = useNavigate();
 
@@ -64,7 +54,7 @@ export default function StandardReportsPage() {
         await saveBlob(res, `investigative_brief_${cleanCaseNumber}.pdf`);
       } catch (err) {
         console.error("Failed to generate brief:", err);
-        setDownloadError("The Investigative Brief could not be generated. Please try again.");
+        setDownloadError(s.briefGenFailed);
       } finally {
         setIsGeneratingBrief(false);
       }
@@ -77,7 +67,7 @@ export default function StandardReportsPage() {
         await saveBlob(res, `takedown_request_${cleanCaseNumber}.pdf`);
       } catch (err) {
         console.error("Failed to generate takedown request:", err);
-        setDownloadError("The Takedown Notice could not be generated. Please try again.");
+        setDownloadError(s.takedownGenFailed);
       } finally {
         setIsGeneratingTakedown(false);
       }
@@ -87,19 +77,19 @@ export default function StandardReportsPage() {
   const reports = [
     {
       key: "brief",
-      name: "Investigative Brief Dossier",
-      basis: "Section 65B, Indian Evidence Act (certified)",
-      desc: "Law-enforcement dossier containing the executive narrative, category entity landscape, multi-hop correlation matrix, chronological case timeline and Section 91 CrPC freeze directives.",
-      contents: BRIEF_CONTENTS,
+      name: s.briefDossierName,
+      basis: s.briefDossierBasis,
+      desc: s.briefDossierDesc,
+      contents: s.briefContents,
       generating: isGeneratingBrief,
       hash: briefHash,
     },
     {
       key: "takedown",
-      name: "Statutory Takedown Notice",
-      basis: "Section 69A, Information Technology Act",
-      desc: "Statutory emergency advisory served upon domain registrars, hosting providers, ISPs and telecom intermediaries with mandatory 24-hour compliance terms.",
-      contents: TAKEDOWN_CONTENTS,
+      name: s.takedownNoticeName,
+      basis: s.takedownNoticeBasis,
+      desc: s.takedownNoticeDesc,
+      contents: s.takedownContents,
       generating: isGeneratingTakedown,
       hash: takedownHash,
     },
@@ -107,16 +97,23 @@ export default function StandardReportsPage() {
 
   return (
     <>
-      <Breadcrumb items={[{ label: "Home", to: "/" }, { label: `Case ${caseNo}`, to: `/cases/${caseId}/graph` }, { label: "Reports" }]} />
+      <Breadcrumb
+        items={[
+          { label: s.home, to: "/" },
+          { label: `${s.thCaseNo} ${caseNo}`, to: `/cases/${caseId}/graph` },
+          { label: s.reports },
+        ]}
+        label={s.mainNav}
+      />
 
       <PageHeader
-        title={`Case ${caseNo} — Certified Forensic Reports`}
-        subtitle="Certified law-enforcement exports formatted for courtroom admissibility under Section 65B of the Indian Evidence Act."
+        title={s.reportsPageTitle.replace("{caseNo}", caseNo)}
+        subtitle={s.reportsPageSub}
         actions={
           <>
             {allCases.length > 1 && (
               <>
-                <label htmlFor="std-report-case-switch" className="std-visually-hidden">Switch case</label>
+                <label htmlFor="std-report-case-switch" className="std-visually-hidden">{s.switchCaseLabel}</label>
                 <select id="std-report-case-switch" className="std-select" value={caseId} onChange={(e) => navigate(`/cases/${e.target.value}/reports`)}>
                   {allCases.map((c) => (
                     <option key={c.id} value={c.id}>{c.case_number} ({c.victim_name})</option>
@@ -124,29 +121,29 @@ export default function StandardReportsPage() {
                 </select>
               </>
             )}
-            <Link className="std-btn std-btn--secondary" to={`/cases/${caseId}/graph`}>Correlation & Graph</Link>
-            <Link className="std-btn std-btn--secondary" to="/">Back to Dashboard</Link>
+            <Link className="std-btn std-btn--secondary" to={`/cases/${caseId}/graph`}>{s.correlation}</Link>
+            <Link className="std-btn std-btn--secondary" to="/">{s.backToDashboard}</Link>
           </>
         }
       />
 
-      <Notice tone="info" title="Password-protected exports">
-        Each report is encrypted at file level. To open the downloaded PDF, enter your officer account password or Badge ID.
+      <Notice tone="info" title={s.pwdProtectedExportsTitle}>
+        {s.pwdProtectedExportsBody}
       </Notice>
 
-      {downloadError && <Notice tone="danger" title="Download failed">{downloadError}</Notice>}
+      {downloadError && <Notice tone="danger" title={s.downloadFailedTitle}>{downloadError}</Notice>}
 
-      <Panel id="available-reports" title="Available Reports" flush>
+      <Panel id="available-reports" title={s.availableReportsTitle} flush>
         <div className="std-table-wrap">
           <table className="std-table">
-            <caption className="std-visually-hidden">Reports available for this case</caption>
+            <caption className="std-visually-hidden">{s.availableReportsTitle}</caption>
             <thead>
               <tr>
-                <th scope="col">S.No.</th>
-                <th scope="col">Report</th>
-                <th scope="col">Legal Basis</th>
-                <th scope="col" className="wide">Description</th>
-                <th scope="col">Action</th>
+                <th scope="col">{s.thSNo}</th>
+                <th scope="col">{s.thReport}</th>
+                <th scope="col">{s.thLegalBasis}</th>
+                <th scope="col" className="wide">{s.thDescription}</th>
+                <th scope="col">{s.thAction}</th>
               </tr>
             </thead>
             <tbody>
@@ -158,11 +155,11 @@ export default function StandardReportsPage() {
                   <td>{r.desc}</td>
                   <td style={{ minWidth: "14rem" }}>
                     <button type="button" className="std-btn std-btn--sm" disabled={r.generating} onClick={() => handleDownload(r.key)}>
-                      {r.generating ? "Generating Encrypted PDF…" : "Download Protected PDF"}
+                      {r.generating ? s.generatingEncryptedPdf : s.downloadProtectedPdf}
                     </button>
                     {r.hash && (
                       <div style={{ marginTop: "0.5rem" }}>
-                        <StatusBadge tone="low">Encrypted &amp; verified</StatusBadge>
+                        <StatusBadge tone="low">{s.encryptedAndVerified}</StatusBadge>
                         <div className="std-hash" style={{ minWidth: 0, marginTop: "0.25rem" }}>SHA-256: {r.hash}</div>
                       </div>
                     )}
@@ -176,9 +173,9 @@ export default function StandardReportsPage() {
 
       <div className="std-cols std-cols--2">
         {reports.map((r) => (
-          <Panel key={r.key} id={`contents-${r.key}`} title={`Contents: ${r.name}`}>
+          <Panel key={r.key} id={`contents-${r.key}`} title={`${s.contentsPrefix} ${r.name}`}>
             <ul className="std-list">
-              {r.contents.map((c) => <li key={c}>{c}</li>)}
+              {r.contents.map((c, idx) => <li key={idx}>{c}</li>)}
             </ul>
           </Panel>
         ))}

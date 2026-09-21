@@ -25,6 +25,18 @@ import {
   ArrowRight,
   ExternalLink,
 } from "lucide-react";
+import { useMode } from "../context/ModeContext";
+import { t } from "../config/standardPortal";
+
+const CLUSTER_NAMES_HI = {
+  phone: "फ़ोन",
+  ip_address: "आईपी पता",
+  imei: "आईएमईआई / डिवाइस",
+  url: "यूआरएल / वेबसाइट",
+  email: "ईमेल",
+  upi_handle: "यूपीआई हैंडल",
+  bank_account: "बैंक खाता",
+};
 
 export const formatEntityType = (type) =>
   ({
@@ -185,6 +197,10 @@ export default function NetworkGraph({
   victimName,
   isLoading = false,
 }) {
+  const { mode, isStandardMode, language } = useMode();
+  const s = t(language);
+  const isHi = isStandardMode && language === "hi";
+
   // Navigation & View State
   const [activeHop, setActiveHop] = useState("overview"); // "overview" | "1hop" | "2hops" | "3hops"
   const [selectedClusterId, setSelectedClusterId] = useState("phone"); // Default to Phone
@@ -514,10 +530,10 @@ export default function NetworkGraph({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 border-b border-slate-800/80 pb-2.5">
         <div>
           <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-            <span>Case Correlation Graph</span>
+            <span>{isHi ? s.graphTitle : "Case Correlation Graph"}</span>
           </h2>
           <p className="text-[12px] text-slate-400 mt-0.5">
-            Explore connections between entities. Click a category cluster to view details or hold Ctrl + scroll to zoom.
+            {isHi ? s.graphSub : "Explore connections between entities. Click a category cluster to view details or hold Ctrl + scroll to zoom."}
           </p>
         </div>
 
@@ -525,10 +541,10 @@ export default function NetworkGraph({
         <div className="flex items-center gap-2">
           <div className="bg-[#0B1222] border border-slate-800 rounded-lg p-1 flex items-center gap-1 shadow-sm">
             {[
-              { id: "overview", label: "Overview" },
-              { id: "1hop", label: "1 Hop" },
-              { id: "2hops", label: "2 Hops" },
-              { id: "3hops", label: "3 Hops" },
+              { id: "overview", label: isHi ? s.graphHopOverview : "Overview" },
+              { id: "1hop", label: isHi ? s.graphHop1 : "1 Hop" },
+              { id: "2hops", label: isHi ? s.graphHop2 : "2 Hops" },
+              { id: "3hops", label: isHi ? s.graphHop3 : "3 Hops" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -555,7 +571,7 @@ export default function NetworkGraph({
           </div>
           <div>
             <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-              Total Entities
+              {isHi ? "कुल संस्थाएं" : "Total Entities"}
             </div>
             <div className="text-base sm:text-lg font-bold font-mono text-white mt-0.5">
               {summaryStats.totalEntities.toLocaleString()}
@@ -570,7 +586,7 @@ export default function NetworkGraph({
           </div>
           <div>
             <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-              Total Connections
+              {isHi ? "कुल संबंध" : "Total Connections"}
             </div>
             <div className="text-base sm:text-lg font-bold font-mono text-white mt-0.5">
               {summaryStats.totalConnections.toLocaleString()}
@@ -585,7 +601,7 @@ export default function NetworkGraph({
           </div>
           <div>
             <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-              High Risk Entities
+              {isHi ? "उच्च जोखिम संस्थाएं" : "High Risk Entities"}
             </div>
             <div className="text-base sm:text-lg font-bold font-mono text-rose-400 mt-0.5">
               {summaryStats.highRiskEntities.toLocaleString()}
@@ -600,7 +616,7 @@ export default function NetworkGraph({
           </div>
           <div>
             <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-              Entity Types
+              {isHi ? "संस्था प्रकार" : "Entity Types"}
             </div>
             <div className="text-base sm:text-lg font-bold font-mono text-white mt-0.5">
               {summaryStats.entityTypes}
@@ -615,7 +631,7 @@ export default function NetworkGraph({
           </div>
           <div>
             <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-              Cross-case Links
+              {isHi ? "अंतर-प्रकरण कड़ियां" : "Cross-case Links"}
             </div>
             <div className="text-base sm:text-lg font-bold font-mono text-emerald-400 mt-0.5">
               {summaryStats.crossCaseLinks}
@@ -921,7 +937,7 @@ export default function NetworkGraph({
                 fontWeight="700"
                 letterSpacing="1.5"
               >
-                CASE
+                {isHi ? "प्रकरण" : "CASE"}
               </text>
               <text
                 y="4"
@@ -931,7 +947,7 @@ export default function NetworkGraph({
                 fontWeight="800"
                 fontFamily="monospace"
               >
-                {caseNumber.startsWith("#") ? `Case ${caseNumber}` : caseNumber}
+                {caseNumber.startsWith("#") ? (isHi ? `प्रकरण ${caseNumber}` : `Case ${caseNumber}`) : caseNumber}
               </text>
               <text
                 y="18"
@@ -940,7 +956,7 @@ export default function NetworkGraph({
                 fontSize="8.5"
                 fontWeight="500"
               >
-                {summaryStats.totalEntities.toLocaleString()} entities
+                {summaryStats.totalEntities.toLocaleString()} {isHi ? "संस्थाएं" : "entities"}
               </text>
               <text
                 y="29"
@@ -949,7 +965,7 @@ export default function NetworkGraph({
                 fontSize="8"
                 fontWeight="500"
               >
-                {summaryStats.totalConnections.toLocaleString()} links
+                {summaryStats.totalConnections.toLocaleString()} {isHi ? "कड़ियां" : "links"}
               </text>
             </g>
 
@@ -959,6 +975,7 @@ export default function NetworkGraph({
               const isExpanded = expandedClusters.has(cluster.id);
               const isHovered = hoveredClusterId === cluster.id;
               const IconComponent = cluster.icon;
+              const clusterDisplayName = isHi ? (CLUSTER_NAMES_HI[cluster.id] || cluster.name) : cluster.name;
 
               return (
                 <g
@@ -974,7 +991,7 @@ export default function NetworkGraph({
                     setIsSidePanelOpen(true);
                   }}
                 >
-                  <title>{cluster.name}: {cluster.count} entities, {cluster.highRisk} high risk</title>
+                  <title>{clusterDisplayName}: {cluster.count} {isHi ? "संस्थाएं" : "entities"}, {cluster.highRisk} {isHi ? "उच्च जोखिम" : "high risk"}</title>
                   {/* Outer active pulse ring if selected */}
                   {isSelected && (
                     <circle
@@ -1037,7 +1054,7 @@ export default function NetworkGraph({
                     fontWeight="700"
                     className="pointer-events-none"
                   >
-                    {cluster.name}
+                    {clusterDisplayName}
                   </text>
 
                   {/* Entity Count (Dynamic visibility at low zoom) */}
@@ -1050,7 +1067,7 @@ export default function NetworkGraph({
                     className="pointer-events-none transition-opacity duration-200"
                     opacity={zoom < 0.75 && !isSelected && !isHovered ? 0 : 1}
                   >
-                    {cluster.count} entities
+                    {cluster.count} {isHi ? "संस्थाएं" : "entities"}
                   </text>
 
                   {/* High Risk Pill Badge (Dynamic visibility at low zoom) */}
@@ -1076,7 +1093,7 @@ export default function NetworkGraph({
                       fontSize="8"
                       fontWeight="700"
                     >
-                      {cluster.highRisk} high risk
+                      {cluster.highRisk} {isHi ? "उच्च जोखिम" : "high risk"}
                     </text>
                   </g>
                 </g>
@@ -1105,9 +1122,9 @@ export default function NetworkGraph({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white tracking-wide">
-                      {selectedCluster.name}{" "}
+                      {isHi ? (CLUSTER_NAMES_HI[selectedCluster.id] || selectedCluster.name) : selectedCluster.name}{" "}
                       <span className="text-slate-400 font-normal text-xs">
-                        ({selectedCluster.count} entities)
+                        ({selectedCluster.count} {isHi ? "संस्थाएं" : "entities"})
                       </span>
                     </h3>
                   </div>
@@ -1128,7 +1145,7 @@ export default function NetworkGraph({
                     {selectedCluster.highRisk}
                   </div>
                   <div className="text-[9.5px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
-                    High Risk
+                    {isHi ? "उच्च जोखिम" : "High Risk"}
                   </div>
                 </div>
 
@@ -1137,7 +1154,7 @@ export default function NetworkGraph({
                     {selectedCluster.count}
                   </div>
                   <div className="text-[9.5px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
-                    Total
+                    {isHi ? "कुल संस्थाएं" : "Total"}
                   </div>
                 </div>
 
@@ -1146,7 +1163,7 @@ export default function NetworkGraph({
                     {selectedCluster.linksCount}
                   </div>
                   <div className="text-[9.5px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">
-                    Links
+                    {isHi ? "कड़ियां" : "Links"}
                   </div>
                 </div>
               </div>
@@ -1161,7 +1178,7 @@ export default function NetworkGraph({
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  Top Entities
+                  {isHi ? "प्रमुख संस्थाएं" : "Top Entities"}
                 </button>
                 <button
                   onClick={() => setActiveSideTab("distribution")}
@@ -1171,7 +1188,7 @@ export default function NetworkGraph({
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  Risk Distribution
+                  {isHi ? "जोखिम वितरण" : "Risk Distribution"}
                 </button>
               </div>
 
@@ -1179,8 +1196,8 @@ export default function NetworkGraph({
               {activeSideTab === "top" ? (
                 <div className="space-y-1.5 max-h-[200px] sm:max-h-[230px] overflow-y-auto pr-1">
                   <div className="flex items-center justify-between text-[9.5px] uppercase font-bold text-slate-500 px-2 pb-1 border-b border-slate-800/50">
-                    <span>Entity</span>
-                    <span>Connections</span>
+                    <span>{isHi ? "संस्था" : "Entity"}</span>
+                    <span>{isHi ? "संबंध" : "Connections"}</span>
                   </div>
 
                   {selectedCluster.topEntities.map((item, idx) => (
@@ -1212,7 +1229,7 @@ export default function NetworkGraph({
                               : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                           }`}
                         >
-                          {item.risk}
+                          {item.risk === "high" ? (isHi ? "उच्च" : "high") : item.risk === "medium" ? (isHi ? "मध्यम" : "medium") : (isHi ? "न्यून" : "low")}
                         </span>
                       </div>
                       <span className="font-mono text-slate-300 font-bold text-xs">
@@ -1228,7 +1245,7 @@ export default function NetworkGraph({
                     <div className="flex justify-between text-xs">
                       <span className="text-rose-400 font-semibold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-rose-500" />
-                        High Risk
+                        {isHi ? "उच्च जोखिम" : "High Risk"}
                       </span>
                       <span className="font-mono text-slate-300 font-bold">
                         {selectedCluster.highRisk} (
@@ -1257,7 +1274,7 @@ export default function NetworkGraph({
                     <div className="flex justify-between text-xs">
                       <span className="text-amber-400 font-semibold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-amber-500" />
-                        Medium Risk
+                        {isHi ? "मध्यम जोखिम" : "Medium Risk"}
                       </span>
                       <span className="font-mono text-slate-300 font-bold">
                         {Math.max(
@@ -1281,7 +1298,7 @@ export default function NetworkGraph({
                     <div className="flex justify-between text-xs">
                       <span className="text-blue-400 font-semibold flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-blue-500" />
-                        Low Risk
+                        {isHi ? "न्यून जोखिम" : "Low Risk"}
                       </span>
                       <span className="font-mono text-slate-300 font-bold">
                         {Math.max(
@@ -1312,8 +1329,8 @@ export default function NetworkGraph({
               >
                 <span>
                   {expandedClusters.has(selectedCluster.id)
-                    ? `Collapse ${selectedCluster.name} Nodes`
-                    : `View All ${selectedCluster.count} Entities`}
+                    ? (isHi ? `${isHi ? (CLUSTER_NAMES_HI[selectedCluster.id] || selectedCluster.name) : selectedCluster.name} नोड्स को समेटें` : `Collapse ${selectedCluster.name} Nodes`)
+                    : (isHi ? `सभी ${selectedCluster.count} संस्थाएं देखें` : `View All ${selectedCluster.count} Entities`)}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -1324,20 +1341,20 @@ export default function NetworkGraph({
         {/* 5. Bottom-Left Overlay: Risk Level Legend */}
         <div className="absolute bottom-3 left-3 rounded-xl bg-[#080E1C]/88 backdrop-blur-md border border-slate-800/90 p-2.5 shadow-xl pointer-events-auto">
           <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1.5">
-            Risk Level
+            {isHi ? "जोखिम स्तर" : "Risk Level"}
           </div>
           <div className="space-y-1 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
-              <span className="text-slate-300 text-[11px] font-medium">High</span>
+              <span className="text-slate-300 text-[11px] font-medium">{isHi ? "उच्च" : "High"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-              <span className="text-slate-300 text-[11px] font-medium">Medium</span>
+              <span className="text-slate-300 text-[11px] font-medium">{isHi ? "मध्यम" : "Medium"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />
-              <span className="text-slate-300 text-[11px] font-medium">Low</span>
+              <span className="text-slate-300 text-[11px] font-medium">{isHi ? "न्यून" : "Low"}</span>
             </div>
           </div>
         </div>
@@ -1381,28 +1398,28 @@ export default function NetworkGraph({
       <div className="rounded-xl bg-[#080E1C] border border-slate-800/80 px-3.5 py-2 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-300 shadow-sm">
         <div className="font-bold text-slate-400 uppercase tracking-wider text-[10.5px] flex items-center gap-1.5 flex-shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-accent" />
-          <span>Recent Findings</span>
+          <span>{isHi ? "हालिया निष्कर्ष" : "Recent Findings"}</span>
         </div>
 
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11.5px]">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0" />
-            <span>+91 98765 43210 linked to 3 bank accounts</span>
+            <span>{isHi ? "+91 98765 43210 3 बैंक खातों से संबद्ध" : "+91 98765 43210 linked to 3 bank accounts"}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-            <span>192.168.1.25 connected to 12 devices</span>
+            <span>{isHi ? "192.168.1.25 12 उपकरणों से जुड़ा" : "192.168.1.25 connected to 12 devices"}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
-            <span>UPI handle found in 5 cases</span>
+            <span>{isHi ? "यूपीआई हैंडल 5 प्रकरणों में पाया गया" : "UPI handle found in 5 cases"}</span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
-            <span>Cross-case link with Case #102</span>
+            <span>{isHi ? "प्रकरण #102 के साथ अंतर-प्रकरण संबंध" : "Cross-case link with Case #102"}</span>
           </div>
         </div>
       </div>

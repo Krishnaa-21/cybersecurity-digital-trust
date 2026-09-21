@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useMode } from "../context/ModeContext";
 import { apiClient } from "../api/client";
+import { t } from "../config/standardPortal";
 
 const REQUEST_TIMEOUT_MS = 30000;
 const MAX_HISTORY_TURNS = 6;
@@ -26,18 +27,32 @@ const MAX_HISTORY_TURNS = 6;
 const nowStamp = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 /** Turn a failed chat request into a message an officer can act on. */
-function describeChatError(err) {
+function describeChatError(err, isHi = false) {
   if (err?.name === "AbortError") {
-    return "The assistant took too long to respond. Please try again — or ask a narrower question.";
+    return isHi
+      ? "सहायक ने उत्तर देने में अधिक समय लिया। कृपया पुनः प्रयास करें अथवा अधिक विशिष्ट प्रश्न पूछें।"
+      : "The assistant took too long to respond. Please try again — or ask a narrower question.";
   }
   const status = err?.status;
   if (status === 400 && typeof err.message === "string") return err.message;
-  if (status === 404) return "The assistant service was not found on the server. Please make sure the backend is up to date.";
-  if (status >= 500) return "The intelligence service hit an error. Please try again in a moment.";
-  if (status === undefined) {
-    return "Cannot reach the TraceX server. Check that the backend is running and your connection is working, then try again.";
+  if (status === 404) {
+    return isHi
+      ? "सर्वर पर सहायक सेवा उपलब्ध नहीं है। कृपया सुनिश्चित करें कि बैकएंड अद्यतन है।"
+      : "The assistant service was not found on the server. Please make sure the backend is up to date.";
   }
-  return "Error retrieving intelligence response. Please try again.";
+  if (status >= 500) {
+    return isHi
+      ? "आसूचना सेवा में तकनीकी त्रुटि उत्पन्न हुई। कृपया कुछ क्षण पश्चात् पुनः प्रयास करें।"
+      : "The intelligence service hit an error. Please try again in a moment.";
+  }
+  if (status === undefined) {
+    return isHi
+      ? "ट्रेसएक्स सर्वर से संपर्क नहीं हो पा रहा है। जांचें कि बैकएंड सक्रिय है और इंटरनेट कनेक्शन चालू है।"
+      : "Cannot reach the TraceX server. Check that the backend is running and your connection is working, then try again.";
+  }
+  return isHi
+    ? "आसूचना उत्तर प्राप्त करने में त्रुटि। कृपया पुनः प्रयास करें।"
+    : "Error retrieving intelligence response. Please try again.";
 }
 
 /** Inline **bold**, *italic* and `code` -> React nodes (no innerHTML, so evidence text can't inject markup). */
@@ -95,18 +110,23 @@ function FormattedText({ text }) {
 }
 
 export default function ChatWidget() {
-  const { mode, isStandardMode } = useMode();
+  const { mode, isStandardMode, language } = useMode();
+  const s = t(language);
+  const isHi = isStandardMode && language === "hi";
+
   const location = useLocation();
   const params = useParams();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState(null);
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState(() => [
     {
       id: "welcome",
       sender: "bot",
-      text: "Hello Officer. I am your TraceX Cyber Intelligence Assistant. Ask me questions regarding the active case investigation, mule accounts, APK threat signatures, or cross-case fraud analytics across the state network.",
+      text: isStandardMode
+        ? s.chatWelcomeMessage
+        : "Hello Officer. I am your TraceX Cyber Intelligence Assistant. Ask me questions regarding the active case investigation, mule accounts, APK threat signatures, or cross-case fraud analytics across the state network.",
       timestamp: nowStamp(),
     },
   ]);
@@ -114,6 +134,17 @@ export default function ChatWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Sync welcome message if language switches before user sends messages
+  useEffect(() => {
+    if (!isStandardMode) return;
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === "welcome") {
+        return [{ ...prev[0], text: s.chatWelcomeMessage }];
+      }
+      return prev;
+    });
+  }, [language, isStandardMode, s.chatWelcomeMessage]);
 
   // Extract caseId from URL if user is viewing a case
   const caseMatch = location.pathname.match(/\/cases\/(\d+)/);
@@ -134,7 +165,10 @@ export default function ChatWidget() {
       cancelled = true;
     };
   }, [activeCaseId]);
-  const caseLabel = activeCaseNumber ? `Case #${String(activeCaseNumber).replace(/^#/, "")}` : `Case ID ${activeCaseId}`;
+
+  const caseLabel = activeCaseNumber
+    ? (isHi ? `प्रकरण #${String(activeCaseNumber).replace(/^#/, "")}` : `Case #${String(activeCaseNumber).replace(/^#/, "")}`)
+    : (isHi ? `प्रकरण आईडी ${activeCaseId}` : `Case ID ${activeCaseId}`);
 
   // Listen for global custom event to toggle chat (e.g. from topbar button)
   useEffect(() => {
@@ -205,7 +239,7 @@ export default function ChatWidget() {
       const botMsg = {
         id: `bot-${Date.now()}`,
         sender: "bot",
-        text: res?.response || "No response received from intelligence engine.",
+        text: res?.response || (isHi ? "आसूचना इंजन से कोई उत्तर प्राप्त नहीं हुआ।" : "No response received from intelligence engine."),
         suggested: Array.isArray(res?.suggested_actions) ? res.suggested_actions : [],
         timestamp: nowStamp(),
       };
@@ -214,7 +248,7 @@ export default function ChatWidget() {
       const errorMsg = {
         id: `err-${Date.now()}`,
         sender: "bot",
-        text: describeChatError(err),
+        text: describeChatError(err, isHi),
         isError: true,
         timestamp: nowStamp(),
       };
@@ -230,7 +264,9 @@ export default function ChatWidget() {
       {
         id: "cleared",
         sender: "bot",
-        text: "Chat history cleared. How can I assist your investigation today?",
+        text: isStandardMode
+          ? s.chatClearedMessage
+          : "Chat history cleared. How can I assist your investigation today?",
         timestamp: nowStamp(),
       },
     ]);
@@ -244,20 +280,22 @@ export default function ChatWidget() {
 
   const lastBotId = [...messages].reverse().find((m) => m.sender === "bot" && !m.isError)?.id;
 
-  const quickPrompts = activeCaseId
-    ? [
-        "⚡ Summarize this case",
-        "🎯 Identify high-risk entities",
-        "🏦 Detect suspect mule accounts",
-        "🔗 Check cross-case connections",
-        "📜 Recommended legal freeze action",
-      ]
-    : [
-        "📊 How many high-risk cases are open?",
-        "🚨 List active investigations",
-        "📈 What are the top scam trends?",
-        "🛡️ State-wide Mule account summary",
-      ];
+  const quickPrompts = isStandardMode
+    ? (activeCaseId ? s.chatQuickPromptsCase : s.chatQuickPromptsGlobal)
+    : (activeCaseId
+        ? [
+            "⚡ Summarize this case",
+            "🎯 Identify high-risk entities",
+            "🏦 Detect suspect mule accounts",
+            "🔗 Check cross-case connections",
+            "📜 Recommended legal freeze action",
+          ]
+        : [
+            "📊 How many high-risk cases are open?",
+            "🚨 List active investigations",
+            "📈 What are the top scam trends?",
+            "🛡️ State-wide Mule account summary",
+          ]);
 
   return (
     <>
@@ -272,7 +310,7 @@ export default function ChatWidget() {
             type="button"
             id="tracex-ai-chatbot-launcher"
             onClick={() => setIsOpen(true)}
-            title="Open TraceX Cyber AI Assistant"
+            title={isStandardMode ? s.chatLauncherTitle : "Open TraceX Cyber AI Assistant"}
             className={`group flex items-center gap-2.5 rounded-full font-semibold text-xs transition-all duration-200 cursor-pointer ${
               isStandardMode
                 ? "px-3 sm:px-4 py-1.5 sm:py-2 bg-[#0B3B60] hover:bg-[#082C48] text-white border border-white/30 shadow-[0_4px_16px_rgba(11,42,69,0.28)] hover:shadow-[0_6px_20px_rgba(11,42,69,0.38)]"
@@ -289,10 +327,10 @@ export default function ChatWidget() {
 
             <div className={`flex-col text-left ${isStandardMode ? "hidden sm:flex" : "flex"}`}>
               <span className={`text-[11.5px] font-bold tracking-wide leading-tight ${isStandardMode ? "text-white" : "bg-gradient-to-r from-cyan-200 via-white to-cyan-400 bg-clip-text text-transparent"}`}>
-                TraceX Cyber AI
+                {isStandardMode ? s.chatLauncherText : "TraceX Cyber AI"}
               </span>
               <span className={`text-[9px] font-mono leading-none ${isStandardMode ? "text-white/75" : "text-cyan-300/70"}`}>
-                {activeCaseId ? caseLabel : "Global Intelligence"}
+                {activeCaseId ? caseLabel : (isStandardMode ? s.chatGlobalIntel : "Global Intelligence")}
               </span>
             </div>
 
@@ -310,7 +348,7 @@ export default function ChatWidget() {
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 cursor-pointer"
             onClick={() => setIsOpen(false)}
-            aria-label="Close Chatbot Drawer"
+            aria-label={isStandardMode ? s.chatClose : "Close Chatbot Drawer"}
           />
 
           {/* Dedicated Slide-over Window Container */}
@@ -350,16 +388,18 @@ export default function ChatWidget() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h2 className="text-sm font-bold tracking-wide truncate">
-                      {isStandardMode ? "TraceX AI Assistant" : "TraceX Cyber Intelligence Assistant"}
+                      {isStandardMode ? s.chatWindowTitle : "TraceX Cyber Intelligence Assistant"}
                     </h2>
                     <span className={`items-center gap-1 text-[9.5px] px-1.5 py-0.5 rounded font-mono font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 flex-shrink-0 ${isStandardMode ? "hidden sm:flex" : "flex"}`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      ONLINE
+                      {isHi ? "सक्रिय" : "ONLINE"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-cyan-200/80 truncate">
                     <span className="font-mono font-medium text-cyan-300">
-                      {activeCaseId ? `Active Context: ${caseLabel}` : "Global Threat Intelligence Network"}
+                      {activeCaseId
+                        ? (isStandardMode ? `${s.chatActiveContextCase} ${caseLabel}` : `Active Context: ${caseLabel}`)
+                        : (isStandardMode ? s.chatActiveContextGlobal : "Global Threat Intelligence Network")}
                     </span>
                   </div>
                 </div>
@@ -370,17 +410,17 @@ export default function ChatWidget() {
                 <button
                   type="button"
                   onClick={clearChat}
-                  title="Clear Conversation Thread"
+                  title={isStandardMode ? s.chatClearTitle : "Clear Conversation Thread"}
                   className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-1 text-xs"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline text-[10px] font-mono">Clear</span>
+                  <span className="hidden md:inline text-[10px] font-mono">{isStandardMode ? s.chatClearBtn : "Clear"}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setIsMaximized(!isMaximized)}
-                  title={isMaximized ? "Restore Standard Width" : "Expand Window Width"}
+                  title={isMaximized ? (isStandardMode ? s.chatRestore : "Restore Standard Width") : (isStandardMode ? s.chatMaximize : "Expand Window Width")}
                   className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex items-center justify-center"
                 >
                   {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -389,7 +429,7 @@ export default function ChatWidget() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  title="Close Window (Escape)"
+                  title={isStandardMode ? s.chatClose : "Close Window (Escape)"}
                   className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-red-500/20 transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <X className="w-4 h-4 text-white" />
@@ -406,7 +446,7 @@ export default function ChatWidget() {
             >
               <span className={`text-[10px] font-mono uppercase tracking-wider flex-shrink-0 flex items-center gap-1 font-semibold ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400/70"}`}>
                 <Sparkles className={`w-3 h-3 ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400"}`} />
-                Suggested:
+                {isStandardMode ? s.chatSuggested : "Suggested:"}
               </span>
               {quickPrompts.map((prompt) => (
                 <button
@@ -468,7 +508,9 @@ export default function ChatWidget() {
                     {/* Metadata & Timestamp Row */}
                     <div className="flex items-center justify-between gap-4 mt-2 pt-1 border-t border-white/10 text-[10px] font-mono">
                       <span className={m.sender === "user" ? "text-white/60" : isStandardMode ? "text-[#566274]" : "text-cyan-400/60"}>
-                        {m.sender === "user" ? "Officer" : "TraceX Intelligence Model"}
+                        {m.sender === "user"
+                          ? (isStandardMode ? s.chatOfficer : "Officer")
+                          : (isStandardMode ? s.chatModel : "TraceX Intelligence Model")}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className={m.sender === "user" ? "text-white/70" : "text-slate-400"}>
@@ -478,7 +520,7 @@ export default function ChatWidget() {
                           <button
                             type="button"
                             onClick={() => copyToClipboard(m.id, m.text)}
-                            title="Copy intelligence message"
+                            title={isStandardMode ? s.chatCopyTitle : "Copy intelligence message"}
                             className="text-slate-400 hover:text-cyan-300 transition-colors p-0.5 cursor-pointer"
                           >
                             {copiedMessageId === m.id ? (
@@ -495,7 +537,7 @@ export default function ChatWidget() {
                     {m.sender === "bot" && m.id === lastBotId && !isLoading && m.suggested?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-cyan-500/20">
                         <span className={`text-[10px] font-mono w-full mb-0.5 ${isStandardMode ? "text-[#0B3B60] font-semibold" : "text-cyan-300"}`}>
-                          Next Recommended Actions:
+                          {isStandardMode ? s.chatNextActions : "Next Recommended Actions:"}
                         </span>
                         {m.suggested.map((sg) => (
                           <button
@@ -543,7 +585,7 @@ export default function ChatWidget() {
                     }`}
                   >
                     <Loader2 className={`w-4 h-4 animate-spin ${isStandardMode ? "text-[#0B3B60]" : "text-cyan-400"}`} />
-                    <span>Analyzing intelligence databases, Mule graphs & telecom records...</span>
+                    <span>{isStandardMode ? s.chatAnalyzing : "Analyzing intelligence databases, Mule graphs & telecom records..."}</span>
                   </div>
                 </div>
               )}
@@ -572,8 +614,12 @@ export default function ChatWidget() {
                     disabled={isLoading}
                     placeholder={
                       activeCaseId
-                        ? `Ask TraceX AI about ${caseLabel}...`
-                        : "Ask about high-risk entities, scam clusters, or legal notices..."
+                        ? (isStandardMode
+                            ? (isHi ? `${caseLabel} के संबंध में पूछें...` : `Ask TraceX AI about ${caseLabel}...`)
+                            : `Ask TraceX AI about ${caseLabel}...`)
+                        : (isStandardMode
+                            ? s.chatPlaceholderGlobal
+                            : "Ask about high-risk entities, scam clusters, or legal notices...")
                     }
                     className={`w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl border outline-none transition-all duration-200 ${
                       isStandardMode
@@ -582,7 +628,7 @@ export default function ChatWidget() {
                     }`}
                   />
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 hidden sm:block pointer-events-none">
-                    ↵ Enter
+                    {isHi ? "↵ दर्ज करें" : "↵ Enter"}
                   </div>
                 </div>
 
@@ -594,15 +640,15 @@ export default function ChatWidget() {
                       ? "bg-[#0B3B60] text-white hover:bg-[#082C48] shadow-md"
                       : "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_16px_rgba(0,212,255,0.35)] hover:shadow-[0_0_24px_rgba(0,212,255,0.55)] hover:scale-105 active:scale-95"
                   }`}
-                  title="Send Question"
+                  title={isStandardMode ? s.chatSend : "Send Question"}
                 >
                   <Send className="w-4 h-4" />
                 </button>
               </form>
 
               <div className="mt-2 flex items-center justify-between text-[10px] font-mono text-slate-500 px-1">
-                <span>Intelligence engine v2.4 • End-to-end encrypted</span>
-                <span className="hidden sm:inline">Press Esc to close window</span>
+                <span>{isStandardMode ? s.chatFooterSecured : "Intelligence engine v2.4 • End-to-end encrypted"}</span>
+                <span className="hidden sm:inline">{isStandardMode ? s.chatFooterEsc : "Press Esc to close window"}</span>
               </div>
             </div>
           </aside>

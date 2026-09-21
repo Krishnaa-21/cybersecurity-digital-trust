@@ -40,13 +40,13 @@ export default function StandardUtilityBar() {
           <div className="std-ctl" role="group" aria-label={s.textSize}>
             <span className="std-ctl__label" aria-hidden="true">{s.textSize}</span>
             <div className="std-seg">
-              <button type="button" aria-label="Decrease text size" aria-pressed={fontSizeScale === "small"} onClick={() => setFontSizeScale("small")}>
+              <button type="button" aria-label={s.textSizeDecrease} aria-pressed={fontSizeScale === "small"} onClick={() => setFontSizeScale("small")}>
                 A-
               </button>
-              <button type="button" aria-label="Default text size" aria-pressed={fontSizeScale === "normal"} onClick={() => setFontSizeScale("normal")}>
+              <button type="button" aria-label={s.textSizeDefault} aria-pressed={fontSizeScale === "normal"} onClick={() => setFontSizeScale("normal")}>
                 A
               </button>
-              <button type="button" aria-label="Increase text size" aria-pressed={fontSizeScale === "large"} onClick={() => setFontSizeScale("large")}>
+              <button type="button" aria-label={s.textSizeIncrease} aria-pressed={fontSizeScale === "large"} onClick={() => setFontSizeScale("large")}>
                 A+
               </button>
             </div>

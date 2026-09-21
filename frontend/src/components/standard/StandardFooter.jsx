@@ -1,20 +1,8 @@
 import React from "react";
 import { ArrowUp, ExternalLink } from "lucide-react";
-import { PORTAL, pick } from "../../config/standardPortal";
+import { PORTAL, pick, t } from "../../config/standardPortal";
 import { useMode } from "../../context/ModeContext";
 import { BrandMark } from "./StandardBranding";
-
-const RELATED = [
-  { label: "National Cyber Crime Reporting Portal", href: "https://cybercrime.gov.in" },
-  { label: "Indian Cyber Crime Coordination Centre (I4C)", href: "https://i4c.mha.gov.in" },
-  { label: "CERT-In — Indian Computer Emergency Response Team", href: "https://www.cert-in.org.in" },
-];
-
-const STATUTES = [
-  "Information Technology Act, 2000 — Sections 66C, 66D and 69A",
-  "Indian Evidence Act — Section 65B certification",
-  "Section 91 CrPC — production of documents / debit-freeze directions",
-];
 
 /**
  * Portal footer: brand block, related portals, statutory references,
@@ -23,6 +11,7 @@ const STATUTES = [
  */
 export default function StandardFooter() {
   const { language } = useMode();
+  const s = t(language);
   const year = new Date().getFullYear();
 
   return (
@@ -35,18 +24,18 @@ export default function StandardFooter() {
           </div>
           <p>{pick(PORTAL.portalTitle, language)}</p>
           {PORTAL.officeAddress ? <p>{PORTAL.officeAddress}</p> : null}
-          {PORTAL.helpdesk ? <p>Helpdesk: {PORTAL.helpdesk}</p> : null}
+          {PORTAL.helpdesk ? <p>{language === "hi" ? "हेल्पडेस्क:" : "Helpdesk:"} {PORTAL.helpdesk}</p> : null}
         </section>
 
         <nav aria-labelledby="std-footer-portals">
-          <h2 id="std-footer-portals">Related Portals</h2>
+          <h2 id="std-footer-portals">{s.footerRelatedPortals}</h2>
           <ul>
-            {RELATED.map((l) => (
+            {s.footerPortals.map((l) => (
               <li key={l.href}>
                 <a href={l.href} target="_blank" rel="noopener noreferrer">
                   <span>{l.label}</span>
                   <ExternalLink className="std-footer__ext" aria-hidden="true" size={13} />
-                  <span className="std-visually-hidden"> (opens in a new tab)</span>
+                  <span className="std-visually-hidden"> {s.opensInNewTab}</span>
                 </a>
               </li>
             ))}
@@ -54,35 +43,32 @@ export default function StandardFooter() {
         </nav>
 
         <section aria-labelledby="std-footer-statutes">
-          <h2 id="std-footer-statutes">Statutory References</h2>
+          <h2 id="std-footer-statutes">{s.footerStatutoryReferences}</h2>
           <ul>
-            {STATUTES.map((s) => (
-              <li key={s}>{s}</li>
+            {s.footerStatutes.map((statute) => (
+              <li key={statute}>{statute}</li>
             ))}
           </ul>
         </section>
 
         <section aria-labelledby="std-footer-helplines">
-          <h2 id="std-footer-helplines">Helplines</h2>
+          <h2 id="std-footer-helplines">{s.footerHelplines}</h2>
           <p className="std-footer__helpline">
-            <strong>1930</strong>
-            <span>National Cyber Crime Helpline (toll free)</span>
+            <strong>{s.footerHelplineNumber}</strong>
+            <span>{s.footerHelplineDesc}</span>
           </p>
-          <p>Citizen complaints: cybercrime.gov.in</p>
+          <p>{s.footerCitizenComplaints}</p>
         </section>
       </div>
 
       <div className="std-footer__base">
         <div className="std-container">
           <p className="std-footer__notice">
-            <strong>Advisory notice:</strong> {PORTAL.portalName} is an investigative decision-support system for authorised officers.
-            Risk ratings, correlation scores and AI-generated narratives are advisory and must be verified by the Investigating Officer
-            before any legal action is initiated. Access is restricted, logged and monitored; unauthorised access or misuse is
-            punishable under applicable law.
+            <strong>{s.footerAdvisoryNoticeTitle}</strong> {s.footerAdvisoryNoticeBody}
           </p>
           <div className="std-footer__legal">
             <span>
-              © {year} {PORTAL.portalName}. All rights reserved.
+              {s.footerCopyright.replace("{year}", year)}
             </span>
             <button
               type="button"
@@ -90,7 +76,7 @@ export default function StandardFooter() {
               onClick={() => window.scrollTo({ top: 0 })}
             >
               <ArrowUp aria-hidden="true" size={14} />
-              Back to top
+              {s.footerBackToTop}
             </button>
           </div>
         </div>

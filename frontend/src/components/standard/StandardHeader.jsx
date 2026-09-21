@@ -148,7 +148,7 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
                     />
                   </div>
                   <button type="submit" className="std-btn">
-                    {language === "hi" ? "खोजें" : "Search"}
+                    {s.searchBtn}
                   </button>
                 </div>
               </form>
@@ -169,7 +169,7 @@ export default function StandardHeader({ onOpenNewInvestigation }) {
                               <span className="std-id">{c.case_number}</span> — {c.victim_name}
                             </span>
                             <span className="std-search__secondary">
-                              {c.district || "District pending"} · {scamLabel(c.scam_type)}
+                              {c.district || s.districtPending} · {scamLabel(c.scam_type, language)}
                             </span>
                           </button>
                         </li>
