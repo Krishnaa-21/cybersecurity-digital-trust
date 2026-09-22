@@ -3,12 +3,12 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 const ModeContext = createContext();
 
 export function ModeProvider({ children }) {
-  // Mode: "analysis" (default dark SOC theme) | "standard" (official government portal theme)
+  // Mode: "standard" (default official government portal theme) | "analysis" (dark SOC theme)
   const [mode, setModeState] = useState(() => {
     try {
-      return localStorage.getItem("tracex_app_mode") || "analysis";
+      return localStorage.getItem("tracex_app_mode") || "standard";
     } catch {
-      return "analysis";
+      return "standard";
     }
   });
 

@@ -5,6 +5,7 @@ export const setToken = (token) => localStorage.setItem("tracex_token", token);
 export const clearAuth = () => {
   localStorage.removeItem("tracex_token");
   localStorage.removeItem("tracex_officer");
+  localStorage.removeItem("tracex_app_mode");
 };
 export const getOfficer = () => {
   const data = localStorage.getItem("tracex_officer");

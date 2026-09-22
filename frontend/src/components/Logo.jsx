@@ -17,7 +17,7 @@ export default function Logo({
   showSubtitle = false,
   className = "",
 }) {
-  const { mode } = useMode ? useMode() : { mode: "analysis" };
+  const { mode } = useMode ? useMode() : { mode: "standard" };
   const isStandardMode = mode === "standard";
 
   // Image dimensions keyed by size

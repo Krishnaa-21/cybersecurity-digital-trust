@@ -27,7 +27,7 @@ function CircuitLine({ style }) {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { mode, setMode } = useMode ? useMode() : { mode: "analysis", setMode: () => {} };
+  const { mode, setMode } = useMode ? useMode() : { mode: "standard", setMode: () => {} };
   const isStandardMode = mode === "standard";
 
   const [badgeId, setBadgeId] = useState("");
