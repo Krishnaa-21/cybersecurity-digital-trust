@@ -14,8 +14,8 @@ export default function StandardLogin() {
   const { language } = useMode();
   const s = t(language);
 
-  const [badgeId, setBadgeId] = useState("MP-IO-4471");
-  const [password, setPassword] = useState("demo1234");
+  const [badgeId, setBadgeId] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
