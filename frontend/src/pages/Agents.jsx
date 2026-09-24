@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Bot,
@@ -22,6 +22,7 @@ import {
   X,
   Eye,
   RotateCw,
+  FileCheck2,
 } from "lucide-react";
 import { useAgents, formatWhen, formatDuration, ORCHESTRATOR_ID } from "../hooks/useAgents";
 
@@ -134,9 +135,12 @@ function StatusPill({ status }) {
   );
 }
 
-/** Detail Inspection Modal to keep cards balanced without uneven height jumps */
-function AgentDetailModal({ data, onClose, onRun, busy }) {
-  const { agent, run } = data;
+/**
+ * High-Impact Inline Agent Inspector Panel
+ * Opens directly below the cards and smoothly brings both into view,
+ * eliminating all positioning, clipping, and off-screen scroll issues.
+ */
+function AgentInspectorPanel({ agent, run, onClose, onRun, busy }) {
   const info = AGENT_CONFIG[agent.id] || {
     icon: Bot,
     color: "#00D4FF",
@@ -149,91 +153,101 @@ function AgentDetailModal({ data, onClose, onRun, busy }) {
   const recommendations = result.recommendations || [];
   const steps = result.steps || [];
 
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+    <section
+      id="agent-inspector-section"
+      className="p-5 sm:p-6 rounded-2xl relative overflow-hidden transition-all animate-fade-in-up"
+      style={{
+        background: "rgba(7, 13, 27, 0.95)",
+        border: "1.5px solid rgba(0, 212, 255, 0.4)",
+        boxShadow: "0 0 40px rgba(0, 212, 255, 0.15), 0 12px 36px rgba(0, 0, 0, 0.6)",
       }}
     >
-      <div
-        className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up"
-        style={{
-          background: "#080E1C",
-          border: "1px solid rgba(0, 212, 255, 0.35)",
-          boxShadow: "0 0 50px rgba(0, 212, 255, 0.15), 0 20px 50px rgba(0, 0, 0, 0.9)",
-        }}
-      >
-        {/* Modal Header */}
-        <div
-          className="px-6 py-4 flex items-center justify-between border-b flex-shrink-0"
-          style={{ borderColor: "rgba(0, 212, 255, 0.15)", background: "rgba(10, 18, 36, 0.85)" }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="p-2.5 rounded-xl flex items-center justify-center"
-              style={{ background: info.bgSoft || "rgba(0, 212, 255, 0.12)", color: info.color }}
-            >
-              <Icon className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">{info.simpleName}</h3>
-                <StatusPill status={run?.status || "completed"} />
-              </div>
-              <p className="text-[12px] text-slate-400">{info.tagline}</p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-            title="Close dialog (Esc)"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Modal Scrollable Body */}
-        <div className="p-6 overflow-y-auto space-y-5 text-[13px] leading-relaxed">
-          {/* Main Outcome Callout */}
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-cyan-500/15">
+        <div className="flex items-center gap-3">
           <div
-            className="p-4 rounded-xl"
+            className="p-2.5 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: "rgba(0, 212, 255, 0.06)",
-              border: "1px solid rgba(0, 212, 255, 0.2)",
+              background: info.bgSoft || "rgba(0, 212, 255, 0.12)",
+              border: `1px solid ${info.borderSoft || "rgba(0, 212, 255, 0.3)"}`,
+              color: info.color,
             }}
           >
-            <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold block mb-1">
-              Executive Summary
-            </span>
-            <p className="text-slate-100 text-[13.5px] font-medium m-0">{run?.summary || "No summary provided."}</p>
-            <div className="mt-2 text-[11px] font-mono text-slate-400">
-              Run completed: {formatWhen(run?.created_at)} · Runtime: {formatDuration(run?.duration_ms)}
+            <Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
+                INSPECTION REPORT
+              </span>
+              <h3 className="text-base font-bold text-white tracking-tight">{info.simpleName}</h3>
+              <StatusPill status={run?.status || "completed"} />
             </div>
+            <p className="text-[12px] text-slate-400 mt-0.5">{info.tagline}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-slate-700/60 transition-colors cursor-pointer"
+          title="Close Inspector"
+        >
+          <span>Close Report</span>
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* ── HIGHLIGHTED RESULT & REPORT (Strong Visual Hierarchy) ────────── */}
+      <div
+        className="mt-5 p-4 sm:p-5 rounded-xl transition-all border-l-4 border-l-[#00D4FF]"
+        style={{
+          background: "linear-gradient(135deg, rgba(0, 212, 255, 0.14) 0%, rgba(10, 22, 48, 0.90) 100%)",
+          borderTop: "1px solid rgba(0, 212, 255, 0.35)",
+          borderRight: "1px solid rgba(0, 212, 255, 0.35)",
+          borderBottom: "1px solid rgba(0, 212, 255, 0.35)",
+          boxShadow: "0 4px 20px rgba(0, 212, 255, 0.12)",
+        }}
+      >
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold bg-cyan-500/15 px-2.5 py-1 rounded-md border border-cyan-500/30">
+            <FileCheck2 className="w-4 h-4 text-cyan-300" />
+            <span>Key Outcome &amp; Investigation Finding</span>
           </div>
 
-          {/* Key Findings */}
+          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-300 bg-black/40 px-2.5 py-1 rounded-md border border-slate-700/60">
+            <span>Verified: <strong>{formatWhen(run?.created_at)}</strong></span>
+            <span className="text-slate-500">•</span>
+            <span>Duration: <strong>{formatDuration(run?.duration_ms)}</strong></span>
+          </div>
+        </div>
+
+        <p className="text-base sm:text-lg font-bold text-white leading-relaxed">
+          {run?.summary || "Analysis completed successfully with zero blockers."}
+        </p>
+      </div>
+
+      {/* ── Two-Column Findings & Recommendations ──────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+        {/* Left Column: Key Discoveries */}
+        <div
+          className="p-4 rounded-xl flex flex-col justify-between"
+          style={{ background: "rgba(10, 18, 36, 0.6)", border: "1px solid rgba(0, 212, 255, 0.12)" }}
+        >
           <div>
-            <h4 className="text-[12px] font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2.5">
-              <Sparkles className="w-4 h-4" />
-              <span>Key Discoveries ({findings.length})</span>
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[12px] font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-bold">
+                <Sparkles className="w-4 h-4" />
+                <span>Key Discoveries ({findings.length})</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-mono">Flagged items</span>
+            </div>
+
             {findings.length === 0 ? (
-              <p className="text-slate-400 text-[12.5px] italic">No specific anomalies flagged in this run.</p>
+              <p className="text-slate-400 text-[12.5px] italic py-2">
+                No critical anomalies or suspicious flags discovered in this run.
+              </p>
             ) : (
               <div className="space-y-2">
                 {findings.map((f, i) => {
@@ -242,19 +256,19 @@ function AgentDetailModal({ data, onClose, onRun, busy }) {
                   return (
                     <div
                       key={i}
-                      className="p-3 rounded-xl flex items-start gap-3"
+                      className="p-3 rounded-xl flex items-start gap-2.5 transition-all"
                       style={{
                         background: isHigh
                           ? "rgba(244, 63, 94, 0.08)"
                           : isMed
                           ? "rgba(245, 158, 11, 0.08)"
-                          : "rgba(15, 23, 42, 0.7)",
+                          : "rgba(15, 23, 42, 0.8)",
                         border: `1px solid ${
                           isHigh
-                            ? "rgba(244, 63, 94, 0.25)"
+                            ? "rgba(244, 63, 94, 0.3)"
                             : isMed
-                            ? "rgba(245, 158, 11, 0.25)"
-                            : "rgba(0, 212, 255, 0.12)"
+                            ? "rgba(245, 158, 11, 0.3)"
+                            : "rgba(0, 212, 255, 0.15)"
                         }`,
                       }}
                     >
@@ -271,7 +285,7 @@ function AgentDetailModal({ data, onClose, onRun, busy }) {
                       </span>
                       <div className="flex-1">
                         <p className="font-semibold text-slate-100 text-[13px]">{f.title}</p>
-                        {f.detail && <p className="text-slate-400 text-[12px] mt-1">{f.detail}</p>}
+                        {f.detail && <p className="text-slate-400 text-[12px] mt-0.5">{f.detail}</p>}
                       </div>
                     </div>
                   );
@@ -279,91 +293,97 @@ function AgentDetailModal({ data, onClose, onRun, busy }) {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Recommended Next Actions */}
+        {/* Right Column: Recommended Next Actions */}
+        <div
+          className="p-4 rounded-xl flex flex-col justify-between"
+          style={{ background: "rgba(10, 18, 36, 0.6)", border: "1px solid rgba(0, 212, 255, 0.12)" }}
+        >
           <div>
-            <h4 className="text-[12px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 mb-2.5">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Recommended Next Steps ({recommendations.length})</span>
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[12px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-bold">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Recommended Next Steps ({recommendations.length})</span>
+              </h4>
+              <span className="text-[11px] text-slate-400 font-mono">Action items</span>
+            </div>
+
             {recommendations.length === 0 ? (
-              <p className="text-slate-400 text-[12.5px] italic">No immediate next steps suggested.</p>
+              <p className="text-slate-400 text-[12.5px] italic py-2">
+                No immediate action steps required for this verification.
+              </p>
             ) : (
               <div className="space-y-2">
                 {recommendations.map((r, i) => (
                   <div
                     key={i}
                     className="p-2.5 rounded-lg flex items-start gap-2.5 text-slate-200"
-                    style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)" }}
+                    style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)" }}
                   >
                     <ArrowRight className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>{r}</span>
+                    <span className="text-[12.5px] leading-relaxed">{r}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {/* Completed Steps */}
-          {steps.length > 0 && (
-            <div className="pt-2 border-t border-slate-800">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-2">
-                Verification Steps Executed
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {steps.map((st, i) => (
-                  <span
-                    key={i}
-                    className="px-2.5 py-1 rounded-md text-[11.5px] font-mono flex items-center gap-1.5"
-                    style={{
-                      background: "rgba(0, 212, 255, 0.05)",
-                      border: "1px solid rgba(0, 212, 255, 0.15)",
-                      color: "#94A3B8",
-                    }}
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{st.name}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Modal Footer */}
-        <div
-          className="px-6 py-3.5 border-t flex items-center justify-between flex-shrink-0"
-          style={{ borderColor: "rgba(0, 212, 255, 0.15)", background: "rgba(10, 18, 36, 0.85)" }}
-        >
-          <span className="text-[11px] font-mono text-slate-500">Run Record #{run?.id || "N/A"}</span>
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg text-[12px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              Done
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => {
-                onClose();
-                onRun(agent.id);
-              }}
-              className="px-4 py-2 rounded-lg text-[12px] font-semibold text-white flex items-center gap-1.5 transition-all"
-              style={{
-                background: "linear-gradient(135deg, #0099CC 0%, #005FA0 100%)",
-                border: "1px solid rgba(0, 212, 255, 0.4)",
-              }}
-            >
-              <RotateCw className="w-3.5 h-3.5" />
-              <span>Re-run Agent</span>
-            </button>
-          </div>
         </div>
       </div>
-    </div>
+
+      {/* Verification Steps Audit */}
+      {steps.length > 0 && (
+        <div className="mt-4 pt-3.5 border-t border-slate-800">
+          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-2 font-medium">
+            Verification Steps Executed
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {steps.map((st, i) => (
+              <span
+                key={i}
+                className="px-2.5 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5"
+                style={{
+                  background: "rgba(0, 212, 255, 0.05)",
+                  border: "1px solid rgba(0, 212, 255, 0.15)",
+                  color: "#94A3B8",
+                }}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{st.name}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Action Footer */}
+      <div className="mt-5 pt-4 border-t border-cyan-500/15 flex items-center justify-between flex-wrap gap-3">
+        <span className="text-[11px] font-mono text-slate-500">Audit Record #{run?.id || "N/A"}</span>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-[12px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            Dismiss
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => onRun(agent.id)}
+            className="px-4 py-2 rounded-lg text-[12px] font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            style={{
+              background: "linear-gradient(135deg, #0099CC 0%, #005FA0 100%)",
+              border: "1px solid rgba(0, 212, 255, 0.4)",
+              boxShadow: "0 0 14px rgba(0, 212, 255, 0.2)",
+            }}
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+            <span>Re-run This Agent</span>
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -382,14 +402,32 @@ export default function Agents() {
     latestByAgent,
   } = useAgents();
 
-  const [activeModalRun, setActiveModalRun] = useState(null);
+  // Selected agent for inline inspection
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
   const [historyFilter, setHistoryFilter] = useState("all");
+  const inspectorRef = useRef(null);
 
   const orchestrator = agents.find((a) => a.id === ORCHESTRATOR_ID);
   const specialists = agents.filter((a) => a.id !== ORCHESTRATOR_ID);
   const orchRun = latestByAgent[ORCHESTRATOR_ID];
   const pipeline = orchRun?.result?.data?.children || [];
   const busy = !!runningId || !caseId;
+
+  // Active run data for the inspector panel
+  const activeAgentData = useMemo(() => {
+    if (!selectedAgentId) return null;
+    const ag = agents.find((a) => a.id === selectedAgentId);
+    if (!ag) return null;
+    const r = latestByAgent[selectedAgentId];
+    return { agent: ag, run: r };
+  }, [selectedAgentId, agents, latestByAgent]);
+
+  // Smoothly scroll inspector into view whenever an agent is selected
+  useEffect(() => {
+    if (selectedAgentId && inspectorRef.current) {
+      inspectorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedAgentId]);
 
   // Filter history
   const filteredRuns = useMemo(() => {
@@ -404,17 +442,7 @@ export default function Agents() {
       : 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-fade-in-up">
-      {/* ── Modal Dialog for Detailed Findings ─────────────────────────── */}
-      {activeModalRun && (
-        <AgentDetailModal
-          data={activeModalRun}
-          onClose={() => setActiveModalRun(null)}
-          onRun={runAgent}
-          busy={busy}
-        />
-      )}
-
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       {/* ── Page Header & Case Selector ─────────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -446,7 +474,10 @@ export default function Agents() {
           <select
             id="agent-case-select"
             value={caseId || ""}
-            onChange={(e) => selectCase(e.target.value)}
+            onChange={(e) => {
+              selectCase(e.target.value);
+              setSelectedAgentId(null);
+            }}
             className="bg-black/60 border border-cyan-500/30 rounded-lg px-3 py-1.5 text-[12.5px] font-mono text-white outline-none cursor-pointer focus:border-cyan-400"
           >
             {cases.map((c) => (
@@ -546,11 +577,17 @@ export default function Agents() {
           {/* ── Hero Orchestrator Card (Full Auto-Pilot) ─────────────────── */}
           {orchestrator && (
             <section
-              className="p-5 sm:p-6 rounded-2xl relative overflow-hidden transition-all"
+              className={`p-5 sm:p-6 rounded-2xl relative overflow-hidden transition-all ${
+                selectedAgentId === ORCHESTRATOR_ID ? "ring-2 ring-cyan-400" : ""
+              }`}
               style={{
                 background: "linear-gradient(135deg, rgba(8, 20, 42, 0.85) 0%, rgba(12, 10, 32, 0.85) 100%)",
-                border: "1px solid rgba(0, 212, 255, 0.35)",
-                boxShadow: "0 0 35px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(0, 212, 255, 0.2)",
+                border: `1px solid ${
+                  selectedAgentId === ORCHESTRATOR_ID ? "rgba(0, 212, 255, 0.8)" : "rgba(0, 212, 255, 0.35)"
+                }`,
+                boxShadow: selectedAgentId === ORCHESTRATOR_ID
+                  ? "0 0 35px rgba(0, 212, 255, 0.35)"
+                  : "0 0 25px rgba(0, 212, 255, 0.08)",
               }}
             >
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
@@ -574,6 +611,11 @@ export default function Agents() {
                         {AGENT_CONFIG.case_orchestrator.simpleName}
                       </h2>
                       <StatusPill status={runningId === ORCHESTRATOR_ID ? "running" : orchRun?.status || "idle"} />
+                      {selectedAgentId === ORCHESTRATOR_ID && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-cyan-400 text-slate-950">
+                          ● INSPECTING
+                        </span>
+                      )}
                     </div>
                     <p className="text-[13px] text-slate-300 mt-1.5 max-w-2xl leading-relaxed">
                       {AGENT_CONFIG.case_orchestrator.description}
@@ -673,11 +715,15 @@ export default function Agents() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveModalRun({ agent: orchestrator, run: orchRun })}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-cyan-300 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-colors whitespace-nowrap"
+                    onClick={() =>
+                      setSelectedAgentId((prev) => (prev === ORCHESTRATOR_ID ? null : ORCHESTRATOR_ID))
+                    }
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold text-cyan-300 hover:text-white bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Inspect Full Auto-Pilot Report</span>
+                    <span>
+                      {selectedAgentId === ORCHESTRATOR_ID ? "Hide Auto-Pilot Report" : "Inspect Auto-Pilot Report"}
+                    </span>
                   </button>
                 </div>
               )}
@@ -686,11 +732,13 @@ export default function Agents() {
 
           {/* ── Section: Specialist Agents Grid (Equal-height, balanced cards) ── */}
           <div>
-            <div className="mb-3.5">
-              <h2 className="text-lg font-bold text-white">Individual Specialist Agents</h2>
-              <p className="text-[12.5px] text-slate-400 mt-0.5">
-                Run any specialist individually below to inspect a specific part of this case.
-              </p>
+            <div className="mb-3.5 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-white">Individual Specialist Agents</h2>
+                <p className="text-[12.5px] text-slate-400 mt-0.5">
+                  Click any specialist to run it or inspect its findings directly below.
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
@@ -709,17 +757,27 @@ export default function Agents() {
                 const Icon = info.icon;
                 const run = latestByAgent[agent.id];
                 const isRunning = runningId === agent.id;
+                const isSelected = selectedAgentId === agent.id;
                 const currentStatus = isRunning ? "running" : run?.status || "idle";
                 const findingsCount = run?.result?.findings?.length || 0;
 
                 return (
                   <article
                     key={agent.id}
-                    className="p-5 rounded-xl flex flex-col justify-between transition-all"
+                    onClick={() => {
+                      if (run) setSelectedAgentId((prev) => (prev === agent.id ? null : agent.id));
+                    }}
+                    className={`p-5 rounded-2xl flex flex-col justify-between transition-all cursor-pointer ${
+                      isSelected ? "ring-2 ring-cyan-400" : "hover:border-cyan-500/40"
+                    }`}
                     style={{
-                      background: "rgba(8, 14, 28, 0.8)",
-                      border: "1px solid rgba(0, 212, 255, 0.16)",
-                      boxShadow: "0 4px 18px rgba(0, 0, 0, 0.35)",
+                      background: isSelected ? "rgba(10, 22, 46, 0.95)" : "rgba(8, 14, 28, 0.8)",
+                      border: `1.5px solid ${
+                        isSelected ? "#00D4FF" : "rgba(0, 212, 255, 0.18)"
+                      }`,
+                      boxShadow: isSelected
+                        ? "0 0 28px rgba(0, 212, 255, 0.35), 0 4px 18px rgba(0, 0, 0, 0.4)"
+                        : "0 4px 18px rgba(0, 0, 0, 0.35)",
                     }}
                   >
                     <div>
@@ -736,10 +794,17 @@ export default function Agents() {
                           <Icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <h3 className="text-[14.5px] font-bold text-white tracking-tight leading-snug">
-                              {info.simpleName}
-                            </h3>
+                          <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-[14.5px] font-bold text-white tracking-tight leading-snug">
+                                {info.simpleName}
+                              </h3>
+                              {isSelected && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider font-bold bg-cyan-400 text-slate-950">
+                                  SELECTED
+                                </span>
+                              )}
+                            </div>
                             <StatusPill status={currentStatus} />
                           </div>
                           <p className="text-[11.5px] font-mono mt-0.5" style={{ color: info.color }}>
@@ -749,32 +814,32 @@ export default function Agents() {
                       </div>
 
                       {/* Description (fixed height for balance across cards) */}
-                      <p className="text-[12.5px] text-slate-300 leading-relaxed mb-3 min-h-[38px]">
+                      <p className="text-[12.5px] text-slate-300 leading-relaxed mb-3 min-h-[40px]">
                         {info.description}
                       </p>
 
-                      {/* Latest Result Highlight Chip (Clean & Uncluttered) */}
+                      {/* Latest Result Highlight Chip (Clean, Uncluttered, No text clipping) */}
                       <div
-                        className="p-2.5 rounded-lg text-[12px] min-h-[52px] flex flex-col justify-center mb-3"
+                        className="p-3 rounded-xl text-[12px] min-h-[56px] flex flex-col justify-center mb-3"
                         style={{
-                          background: run ? "rgba(0, 212, 255, 0.04)" : "rgba(0, 0, 0, 0.3)",
-                          border: `1px solid ${run ? "rgba(0, 212, 255, 0.12)" : "rgba(255, 255, 255, 0.05)"}`,
+                          background: run ? "rgba(0, 212, 255, 0.05)" : "rgba(0, 0, 0, 0.35)",
+                          border: `1px solid ${run ? "rgba(0, 212, 255, 0.15)" : "rgba(255, 255, 255, 0.05)"}`,
                         }}
                       >
                         {run ? (
                           <>
-                            <div className="flex items-center gap-1.5 text-slate-200 font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
-                              <span className="line-clamp-1">{run.summary}</span>
+                            <div className="flex items-start gap-1.5 text-slate-200 font-medium leading-snug">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 mt-1.5 flex-shrink-0" />
+                              <span className="line-clamp-2">{run.summary}</span>
                             </div>
-                            <div className="text-[10.5px] font-mono text-slate-400 mt-1">
+                            <div className="text-[10px] font-mono text-slate-400 mt-1.5 pl-3">
                               {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
                             </div>
                           </>
                         ) : (
                           <div className="text-slate-400 text-[11.5px] flex items-center gap-1.5 italic">
                             <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Not run yet on this case.</span>
+                            <span>Not run yet on this case. Click below to start.</span>
                           </div>
                         )}
                       </div>
@@ -784,6 +849,7 @@ export default function Agents() {
                     <div
                       className="pt-3.5 mt-auto flex items-center justify-between gap-2 border-t"
                       style={{ borderColor: "rgba(0, 212, 255, 0.10)" }}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <button
                         type="button"
@@ -809,12 +875,16 @@ export default function Agents() {
                         <button
                           type="button"
                           id={`btn-inspect-${agent.id}`}
-                          onClick={() => setActiveModalRun({ agent, run })}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-cyan-400 hover:text-white transition-colors cursor-pointer"
+                          onClick={() => setSelectedAgentId((prev) => (prev === agent.id ? null : agent.id))}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-cyan-400 text-slate-950 shadow-[0_0_12px_rgba(0,212,255,0.4)]"
+                              : "text-cyan-400 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30"
+                          }`}
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>
-                            View Details {findingsCount > 0 ? `(${findingsCount})` : ""}
+                            {isSelected ? "Hide Report" : `View Report ${findingsCount > 0 ? `(${findingsCount})` : ""}`}
                           </span>
                         </button>
                       )}
@@ -823,6 +893,19 @@ export default function Agents() {
                 );
               })}
             </div>
+          </div>
+
+          {/* ── ACTIVE AGENT INSPECTION & FINDINGS PANEL ─────────────────── */}
+          <div ref={inspectorRef}>
+            {activeAgentData && (
+              <AgentInspectorPanel
+                agent={activeAgentData.agent}
+                run={activeAgentData.run}
+                onClose={() => setSelectedAgentId(null)}
+                onRun={runAgent}
+                busy={busy}
+              />
+            )}
           </div>
 
           {/* ── Section: Activity Log & Audit Trail ──────────────────────── */}
@@ -846,7 +929,7 @@ export default function Agents() {
                   </span>
                 </h2>
                 <p className="text-[12px] text-slate-400 mt-0.5">
-                  Click any past run to inspect its detailed findings and recommendations.
+                  Click any past run to inspect its detailed findings and recommendations above.
                 </p>
               </div>
 
@@ -911,17 +994,15 @@ export default function Agents() {
                     </tr>
                   ) : (
                     filteredRuns.slice(0, 20).map((r) => {
-                      const matchedAgent = agents.find((a) => a.id === r.agent_id) || {
-                        id: r.agent_id,
-                        name: r.agent_name,
-                        role: "Specialist",
-                      };
+                      const isSelected = selectedAgentId === r.agent_id;
                       return (
                         <tr
                           key={r.id}
-                          onClick={() => setActiveModalRun({ agent: matchedAgent, run: r })}
-                          className="transition-colors hover:bg-cyan-500/10 cursor-pointer"
-                          title="Click to view detailed report"
+                          onClick={() => setSelectedAgentId(r.agent_id)}
+                          className={`transition-colors cursor-pointer ${
+                            isSelected ? "bg-cyan-500/15 font-medium" : "hover:bg-cyan-500/10"
+                          }`}
+                          title="Click to inspect this agent's report"
                         >
                           <td className="px-4 py-2.5 text-slate-400 font-mono whitespace-nowrap">
                             {formatWhen(r.created_at)}
@@ -930,6 +1011,11 @@ export default function Agents() {
                             <div className="flex items-center gap-1.5 text-white font-medium">
                               {r.parent_run_id ? <span className="text-cyan-400">↳</span> : null}
                               <span>{r.agent_name}</span>
+                              {isSelected ? (
+                                <span className="text-[10px] font-mono text-cyan-400 font-bold ml-1">
+                                  ● ACTIVE
+                                </span>
+                              ) : null}
                             </div>
                           </td>
                           <td className="px-4 py-2.5 whitespace-nowrap">

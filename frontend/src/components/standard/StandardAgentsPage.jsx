@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Workflow,
@@ -19,6 +19,7 @@ import {
   Eye,
   X,
   RotateCw,
+  FileCheck2,
 } from "lucide-react";
 import { useAgents, formatWhen, formatDuration, ORCHESTRATOR_ID } from "../../hooks/useAgents";
 import { Breadcrumb, PageHeader, StatusBadge, TableMessage, riskScoreOf } from "./StandardUI";
@@ -108,9 +109,11 @@ function StatusChip({ status, lang = "en" }) {
   );
 }
 
-/** Standard Mode Modal for inspecting agent run findings */
-function StandardAgentModal({ data, onClose, onRun, busy, lang = "en" }) {
-  const { agent, run } = data;
+/**
+ * Standard Mode Inline Agent Inspection & Report Panel
+ * Opens smoothly near the selected agent card, well within the viewport.
+ */
+function StandardAgentInspectorPanel({ agent, run, onClose, onRun, busy, lang = "en" }) {
   const s = t(lang);
   const meta = AGENT_META[agent.id] || {
     icon: Shield,
@@ -125,138 +128,129 @@ function StandardAgentModal({ data, onClose, onRun, busy, lang = "en" }) {
   const recommendations = result.recommendations || [];
   const steps = result.steps || [];
 
-  // Close on Escape key
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
+    <section
+      id="std-agent-inspector"
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-        backgroundColor: "rgba(11, 42, 69, 0.65)",
-        backdropFilter: "blur(4px)",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        backgroundColor: "#FFFFFF",
+        border: "2px solid var(--std-navy, #0B3B60)",
+        borderRadius: "8px",
+        boxShadow: "0 6px 24px rgba(11, 42, 69, 0.12)",
+        marginTop: "1.5rem",
+        marginBottom: "1.5rem",
+        overflow: "hidden",
       }}
     >
+      {/* Top Header Bar */}
       <div
         style={{
-          width: "100%",
-          maxWidth: "680px",
-          maxHeight: "90vh",
+          padding: "12px 18px",
+          backgroundColor: "var(--std-navy, #0B3B60)",
+          color: "#FFFFFF",
           display: "flex",
-          flexDirection: "column",
-          backgroundColor: "#FFFFFF",
-          border: "2px solid #0B3B60",
-          borderRadius: "8px",
-          boxShadow: "0 16px 48px rgba(11, 42, 69, 0.35)",
-          overflow: "hidden",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "10px",
         }}
       >
-        {/* Modal Head */}
-        <div
-          style={{
-            padding: "14px 20px",
-            backgroundColor: "#0B3B60",
-            color: "#FFFFFF",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "6px",
-                backgroundColor: "rgba(255, 255, 255, 0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#FFFFFF",
-              }}
-            >
-              <Icon size={20} />
-            </div>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#FFFFFF" }}>
-                  {lang === "hi" ? meta.simpleNameHi : meta.simpleNameEn}
-                </h3>
-                <StatusChip status={run?.status || "completed"} lang={lang} />
-              </div>
-              <span style={{ fontSize: "12px", color: "#D6E2EE" }}>
-                {lang === "hi" ? meta.taglineHi : meta.taglineEn}
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              background: "none",
-              border: "1px solid rgba(255, 255, 255, 0.4)",
-              color: "#FFFFFF",
-              borderRadius: "4px",
-              padding: "4px 8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              lineHeight: 1,
-            }}
-            title="Close dialog (Esc)"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Modal Body */}
-        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
-          {/* Summary Box */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div
             style={{
-              padding: "14px 16px",
-              backgroundColor: "#F6F8FB",
-              border: "1px solid #D5DCE5",
-              borderLeft: "4px solid #0B3B60",
+              width: "36px",
+              height: "36px",
               borderRadius: "6px",
-              marginBottom: "18px",
+              backgroundColor: "rgba(255, 255, 255, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#FFFFFF",
             }}
           >
-            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#0B3B60", display: "block", marginBottom: "4px" }}>
-              {lang === "hi" ? "कार्यकारी सारांश" : "Executive Summary"}
-            </span>
-            <p style={{ margin: 0, fontSize: "13.5px", fontWeight: "600", color: "#1B1B1B" }}>
-              {run?.summary || "No summary recorded."}
-            </p>
-            <span style={{ fontSize: "11.5px", color: "#566274", display: "block", marginTop: "6px" }}>
-              {lang === "hi" ? "सत्यापन समय:" : "Executed:"} {formatWhen(run?.created_at)} · {formatDuration(run?.duration_ms)}
+            <Icon size={20} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#FFFFFF" }}>
+                {lang === "hi" ? meta.simpleNameHi : meta.simpleNameEn}
+              </h3>
+              <StatusChip status={run?.status || "completed"} lang={lang} />
+            </div>
+            <span style={{ fontSize: "12px", color: "#D6E2EE" }}>
+              {lang === "hi" ? meta.taglineHi : meta.taglineEn}
             </span>
           </div>
+        </div>
 
-          {/* Key Findings */}
-          <div style={{ marginBottom: "18px" }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: "13px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "1px solid rgba(255, 255, 255, 0.5)",
+            color: "#FFFFFF",
+            borderRadius: "4px",
+            padding: "4px 10px",
+            cursor: "pointer",
+            fontSize: "12.5px",
+            fontWeight: "600",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
+          title="Close Report"
+        >
+          <span>{lang === "hi" ? "आख्या बंद करें" : "Close Report"}</span>
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* ── HIGHLIGHTED REPORT & OUTCOME (Strong Visual Hierarchy) ─────── */}
+      <div style={{ padding: "18px 20px" }}>
+        <div
+          style={{
+            padding: "16px 18px",
+            backgroundColor: "#F0F6FC",
+            border: "1.5px solid #0B3B60",
+            borderLeft: "6px solid #0B3B60",
+            borderRadius: "6px",
+            marginBottom: "18px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "6px" }}>
+            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", color: "#0B3B60" }}>
+              {lang === "hi" ? "🎯 प्रकरण जाँच परिणाम एवं निष्कर्ष आख्या" : "🎯 Key Investigation Outcome & Finding"}
+            </span>
+
+            <div style={{ fontSize: "11.5px", color: "#566274" }}>
+              <span>{lang === "hi" ? "जाँच समय:" : "Verified:"} {formatWhen(run?.created_at)}</span>
+              <span style={{ margin: "0 6px" }}>•</span>
+              <span>{lang === "hi" ? "अवधि:" : "Duration:"} {formatDuration(run?.duration_ms)}</span>
+            </div>
+          </div>
+
+          <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "#0B2A45", lineHeight: "1.4" }}>
+            {run?.summary || "No summary recorded."}
+          </p>
+        </div>
+
+        {/* ── Two-Column Findings & Recommendations ────────────────────── */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px", marginBottom: "18px" }}>
+          {/* Key Discoveries */}
+          <div
+            style={{
+              padding: "14px",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #D5DCE5",
+              borderRadius: "6px",
+            }}
+          >
+            <h4 style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
               {s.agentsKeyFindings} ({findings.length})
             </h4>
+
             {findings.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "13px", color: "#566274", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "12.5px", color: "#566274", fontStyle: "italic" }}>
                 {lang === "hi" ? "इस जाँच में कोई विसंगति नहीं मिली।" : "No anomalies flagged in this run."}
               </p>
             ) : (
@@ -265,97 +259,103 @@ function StandardAgentModal({ data, onClose, onRun, busy, lang = "en" }) {
                   <div
                     key={i}
                     style={{
-                      padding: "10px 12px",
+                      padding: "8px 10px",
                       backgroundColor: f.severity === "high" || f.severity === "critical" ? "#FDECEC" : f.severity === "medium" ? "#FFF3D1" : "#F6F8FB",
                       border: `1px solid ${f.severity === "high" || f.severity === "critical" ? "#D99A9A" : f.severity === "medium" ? "#DDB962" : "#D5DCE5"}`,
-                      borderRadius: "6px",
+                      borderRadius: "4px",
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
                       <StatusBadge tone={f.severity === "high" || f.severity === "critical" ? "high" : f.severity === "medium" ? "medium" : "info"}>
                         {f.severity || "info"}
                       </StatusBadge>
-                      <strong style={{ fontSize: "13px", color: "#1B1B1B" }}>{f.title}</strong>
+                      <strong style={{ fontSize: "12.5px", color: "#1B1B1B" }}>{f.title}</strong>
                     </div>
-                    {f.detail && <p style={{ margin: 0, fontSize: "12px", color: "#3D4756" }}>{f.detail}</p>}
+                    {f.detail && <p style={{ margin: 0, fontSize: "11.5px", color: "#3D4756" }}>{f.detail}</p>}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Recommendations */}
-          <div style={{ marginBottom: "18px" }}>
-            <h4 style={{ margin: "0 0 8px", fontSize: "13px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+          {/* Recommended Next Actions */}
+          <div
+            style={{
+              padding: "14px",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #D5DCE5",
+              borderRadius: "6px",
+            }}
+          >
+            <h4 style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
               {s.agentsNextSteps} ({recommendations.length})
             </h4>
+
             {recommendations.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "13px", color: "#566274", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "12.5px", color: "#566274", fontStyle: "italic" }}>
                 {lang === "hi" ? "कोई विशेष अग्रिम कार्रवाई अनुशंसित नहीं।" : "No specific next steps recommended."}
               </p>
             ) : (
-              <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "13px", color: "#1B1B1B", lineHeight: 1.6 }}>
+              <ul style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "12.5px", color: "#1B1B1B", lineHeight: 1.55 }}>
                 {recommendations.map((r, i) => (
-                  <li key={i} style={{ marginBottom: "4px" }}>{r}</li>
+                  <li key={i} style={{ marginBottom: "5px" }}>{r}</li>
                 ))}
               </ul>
             )}
           </div>
-
-          {/* Steps */}
-          {steps.length > 0 && (
-            <div style={{ paddingTop: "12px", borderTop: "1px solid #D5DCE5" }}>
-              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#566274", display: "block", marginBottom: "6px" }}>
-                {s.agentsStepsTaken}
-              </span>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                {steps.map((st, i) => (
-                  <span
-                    key={i}
-                    style={{
-                      fontSize: "11.5px",
-                      padding: "2px 8px",
-                      borderRadius: "4px",
-                      backgroundColor: "#EEF1F5",
-                      border: "1px solid #CBD5E1",
-                      color: "#1B1B1B",
-                    }}
-                  >
-                    ✓ {st.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Modal Footer */}
+        {/* Verification Steps Audit */}
+        {steps.length > 0 && (
+          <div style={{ paddingTop: "10px", borderTop: "1px solid #E2E8F0", marginBottom: "14px" }}>
+            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#566274", display: "block", marginBottom: "6px" }}>
+              {s.agentsStepsTaken}
+            </span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+              {steps.map((st, i) => (
+                <span
+                  key={i}
+                  style={{
+                    fontSize: "11px",
+                    padding: "2px 8px",
+                    borderRadius: "4px",
+                    backgroundColor: "#EEF1F5",
+                    border: "1px solid #CBD5E1",
+                    color: "#1B1B1B",
+                  }}
+                >
+                  ✓ {st.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Panel Foot */}
         <div
           style={{
-            padding: "12px 20px",
-            backgroundColor: "#F6F8FB",
-            borderTop: "1px solid #D5DCE5",
+            paddingTop: "12px",
+            borderTop: "1px solid #E2E8F0",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            flexShrink: 0,
+            flexWrap: "wrap",
+            gap: "10px",
           }}
         >
           <span style={{ fontSize: "11px", color: "#566274", fontFamily: "var(--std-font-mono, monospace)" }}>
             Audit Entry #{run?.id || "N/A"}
           </span>
+
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={onClose}>
-              {lang === "hi" ? "बंद करें" : "Close"}
+              {lang === "hi" ? "बंद करें" : "Dismiss"}
             </button>
             <button
               type="button"
               className="std-btn std-btn--sm"
               disabled={busy}
-              onClick={() => {
-                onClose();
-                onRun(agent.id);
-              }}
+              onClick={() => onRun(agent.id)}
               style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
             >
               <RotateCw size={13} />
@@ -364,7 +364,7 @@ function StandardAgentModal({ data, onClose, onRun, busy, lang = "en" }) {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -372,7 +372,10 @@ export default function StandardAgentsPage() {
   const { language } = useMode();
   const s = t(language);
   const { agents, cases, runs, loading, error, caseId, selectedCase, selectCase, runAgent, runningId, latestByAgent } = useAgents();
-  const [activeModalRun, setActiveModalRun] = useState(null);
+
+  // Selected agent for inline inspection
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const inspectorRef = useRef(null);
 
   const orchestrator = agents.find((a) => a.id === ORCHESTRATOR_ID);
   const specialists = agents.filter((a) => a.id !== ORCHESTRATOR_ID);
@@ -380,19 +383,24 @@ export default function StandardAgentsPage() {
   const pipeline = orchRun?.result?.data?.children || [];
   const busy = !!runningId || !caseId;
 
+  // Active run data for the inspector panel
+  const activeAgentData = useMemo(() => {
+    if (!selectedAgentId) return null;
+    const ag = agents.find((a) => a.id === selectedAgentId);
+    if (!ag) return null;
+    const r = latestByAgent[selectedAgentId];
+    return { agent: ag, run: r };
+  }, [selectedAgentId, agents, latestByAgent]);
+
+  // Smoothly scroll inspector into view whenever an agent is selected
+  useEffect(() => {
+    if (selectedAgentId && inspectorRef.current) {
+      inspectorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [selectedAgentId]);
+
   return (
     <>
-      {/* ── Standard Mode Inspection Modal ──────────────────────────────── */}
-      {activeModalRun && (
-        <StandardAgentModal
-          data={activeModalRun}
-          onClose={() => setActiveModalRun(null)}
-          onRun={runAgent}
-          busy={busy}
-          lang={language}
-        />
-      )}
-
       <Breadcrumb items={[{ label: s.home, to: "/" }, { label: s.agents }]} />
 
       <PageHeader
@@ -408,7 +416,10 @@ export default function StandardAgentsPage() {
                 id="std-agent-case-select"
                 className="std-select"
                 value={caseId || ""}
-                onChange={(e) => selectCase(e.target.value)}
+                onChange={(e) => {
+                  selectCase(e.target.value);
+                  setSelectedAgentId(null);
+                }}
                 style={{ minWidth: "220px", fontWeight: 500 }}
               >
                 {cases.map((c) => (
@@ -488,7 +499,14 @@ export default function StandardAgentsPage() {
 
           {/* Hero Feature Card: Full Case Auto-Pilot */}
           {orchestrator && (
-            <section className="std-agent-hero-card" aria-labelledby="hero-autopilot-heading">
+            <section
+              className="std-agent-hero-card"
+              aria-labelledby="hero-autopilot-heading"
+              style={{
+                border: selectedAgentId === ORCHESTRATOR_ID ? "2.5px solid var(--std-navy, #0B3B60)" : undefined,
+                boxShadow: selectedAgentId === ORCHESTRATOR_ID ? "0 4px 18px rgba(11, 42, 69, 0.18)" : undefined,
+              }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
                 <div style={{ maxWidth: "680px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
@@ -496,6 +514,11 @@ export default function StandardAgentsPage() {
                       RECOMMENDED FIRST STEP
                     </span>
                     <StatusChip status={runningId === ORCHESTRATOR_ID ? "running" : orchRun?.status || "idle"} lang={language} />
+                    {selectedAgentId === ORCHESTRATOR_ID && (
+                      <span style={{ padding: "2px 8px", backgroundColor: "#0B3B60", color: "#FFFFFF", borderRadius: "4px", fontSize: "0.75rem", fontWeight: 700 }}>
+                        {language === "hi" ? "सक्रिय रिपोर्ट" : "ACTIVE INSPECTION"}
+                      </span>
+                    )}
                   </div>
                   <h2 id="hero-autopilot-heading" style={{ margin: "0 0 0.35rem", fontSize: "1.25rem", color: "var(--std-navy)", fontWeight: 700 }}>
                     {language === "hi" ? AGENT_META.case_orchestrator.simpleNameHi : AGENT_META.case_orchestrator.simpleNameEn}
@@ -593,12 +616,16 @@ export default function StandardAgentsPage() {
 
                   <button
                     type="button"
-                    onClick={() => setActiveModalRun({ agent: orchestrator, run: orchRun })}
+                    onClick={() => setSelectedAgentId((prev) => (prev === ORCHESTRATOR_ID ? null : ORCHESTRATOR_ID))}
                     className="std-btn std-btn--secondary std-btn--sm"
                     style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                   >
                     <Eye size={13} />
-                    <span>{language === "hi" ? "पूर्ण रिपोर्ट देखें" : "View Full Auto-Pilot Report"}</span>
+                    <span>
+                      {selectedAgentId === ORCHESTRATOR_ID
+                        ? (language === "hi" ? "आख्या छिपाएं" : "Hide Auto-Pilot Report")
+                        : (language === "hi" ? "पूर्ण रिपोर्ट देखें" : "Inspect Auto-Pilot Report")}
+                    </span>
                   </button>
                 </div>
               )}
@@ -629,20 +656,41 @@ export default function StandardAgentsPage() {
               const Icon = meta.icon;
               const run = latestByAgent[agent.id];
               const isRunning = runningId === agent.id;
+              const isSelected = selectedAgentId === agent.id;
               const currentStatus = isRunning ? "running" : run?.status || "idle";
               const findingsCount = run?.result?.findings?.length || 0;
 
               return (
-                <article key={agent.id} className="std-agent-card" aria-label={meta.simpleNameEn}>
+                <article
+                  key={agent.id}
+                  onClick={() => {
+                    if (run) setSelectedAgentId((prev) => (prev === agent.id ? null : agent.id));
+                  }}
+                  className="std-agent-card"
+                  aria-label={meta.simpleNameEn}
+                  style={{
+                    cursor: run ? "pointer" : "default",
+                    borderColor: isSelected ? "var(--std-navy, #0B3B60)" : undefined,
+                    backgroundColor: isSelected ? "#F0F6FC" : "#FFFFFF",
+                    boxShadow: isSelected ? "0 4px 16px rgba(11, 42, 69, 0.16)" : undefined,
+                  }}
+                >
                   <div className="std-agent-card-header">
                     <div className="std-agent-card-icon">
                       <Icon size={20} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                        <h3 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 700, color: "var(--std-navy)" }}>
-                          {language === "hi" ? meta.simpleNameHi : meta.simpleNameEn}
-                        </h3>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <h3 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 700, color: "var(--std-navy)" }}>
+                            {language === "hi" ? meta.simpleNameHi : meta.simpleNameEn}
+                          </h3>
+                          {isSelected && (
+                            <span style={{ fontSize: "10px", fontWeight: "800", textTransform: "uppercase", padding: "1px 6px", borderRadius: "3px", backgroundColor: "var(--std-navy, #0B3B60)", color: "#FFFFFF", letterSpacing: "0.04em" }}>
+                              {language === "hi" ? "सक्रिय" : "SELECTED"}
+                            </span>
+                          )}
+                        </div>
                         <StatusChip status={currentStatus} lang={language} />
                       </div>
                       <span style={{ fontSize: "0.75rem", color: "var(--std-text-faint)", display: "block", marginTop: "2px" }}>
@@ -656,14 +704,14 @@ export default function StandardAgentsPage() {
                       {language === "hi" ? meta.descHi : meta.descEn}
                     </p>
 
-                    {/* Compact Highlight Box */}
+                    {/* Compact Highlight Box with Safe Padding & Line Clamping (No Text Clipping) */}
                     <div
                       style={{
-                        padding: "8px 10px",
-                        backgroundColor: run ? "#F6F8FB" : "#F8FAFC",
+                        padding: "8px 12px",
+                        backgroundColor: isSelected ? "#FFFFFF" : run ? "#F6F8FB" : "#F8FAFC",
                         borderRadius: "4px",
-                        border: `1px solid ${run ? "#D5DCE5" : "#E2E8F0"}`,
-                        minHeight: "46px",
+                        border: `1px solid ${isSelected ? "#B9C3CF" : run ? "#D5DCE5" : "#E2E8F0"}`,
+                        minHeight: "54px",
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "center",
@@ -671,10 +719,21 @@ export default function StandardAgentsPage() {
                     >
                       {run ? (
                         <>
-                          <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--std-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          <div
+                            style={{
+                              fontSize: "0.8125rem",
+                              fontWeight: 600,
+                              color: "var(--std-text)",
+                              lineHeight: "1.35",
+                              overflow: "hidden",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                            }}
+                          >
                             {run.summary}
                           </div>
-                          <span style={{ fontSize: "0.7rem", color: "var(--std-text-faint)", marginTop: "2px" }}>
+                          <span style={{ fontSize: "0.7rem", color: "var(--std-text-faint)", marginTop: "4px", display: "block" }}>
                             {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
                           </span>
                         </>
@@ -686,7 +745,7 @@ export default function StandardAgentsPage() {
                     </div>
                   </div>
 
-                  <div className="std-agent-card-actions">
+                  <div className="std-agent-card-actions" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       id={`btn-run-${agent.id}`}
@@ -703,13 +762,14 @@ export default function StandardAgentsPage() {
                       <button
                         type="button"
                         id={`btn-inspect-${agent.id}`}
-                        onClick={() => setActiveModalRun({ agent, run })}
-                        className="std-linkbtn"
+                        onClick={() => setSelectedAgentId((prev) => (prev === agent.id ? null : agent.id))}
+                        className={`std-btn std-btn--sm ${isSelected ? "" : "std-btn--secondary"}`}
                         style={{ fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                       >
                         <Eye size={13} />
                         <span>
-                          {s.agentsViewFindings} {findingsCount > 0 ? `(${findingsCount})` : ""}
+                          {isSelected ? (language === "hi" ? "आख्या छिपाएं" : "Hide Report") : (language === "hi" ? "आख्या देखें" : "View Report")}
+                          {!isSelected && findingsCount > 0 ? ` (${findingsCount})` : ""}
                         </span>
                       </button>
                     )}
@@ -717,6 +777,20 @@ export default function StandardAgentsPage() {
                 </article>
               );
             })}
+          </div>
+
+          {/* ── ACTIVE AGENT INSPECTION & FINDINGS PANEL ─────────────────── */}
+          <div ref={inspectorRef}>
+            {activeAgentData && (
+              <StandardAgentInspectorPanel
+                agent={activeAgentData.agent}
+                run={activeAgentData.run}
+                onClose={() => setSelectedAgentId(null)}
+                onRun={runAgent}
+                busy={busy}
+                lang={language}
+              />
+            )}
           </div>
 
           {/* Activity Log / Audit Trail */}
@@ -740,7 +814,7 @@ export default function StandardAgentsPage() {
                 <thead>
                   <tr>
                     <th scope="col" style={{ width: "60px" }}>#</th>
-                    <th scope="col" style={{ width: "160px" }}>Date & Time</th>
+                    <th scope="col" style={{ width: "160px" }}>Date &amp; Time</th>
                     <th scope="col" style={{ width: "200px" }}>Agent</th>
                     <th scope="col" style={{ width: "130px" }}>Status</th>
                     <th scope="col">What was found</th>
@@ -752,17 +826,17 @@ export default function StandardAgentsPage() {
                     <TableMessage colSpan={6}>{s.agentsNoRunsYet}</TableMessage>
                   ) : (
                     runs.map((r, i) => {
-                      const matchedAgent = agents.find((a) => a.id === r.agent_id) || {
-                        id: r.agent_id,
-                        name: r.agent_name,
-                        role: "Specialist",
-                      };
+                      const isSelected = selectedAgentId === r.agent_id;
                       return (
                         <tr
                           key={r.id}
-                          onClick={() => setActiveModalRun({ agent: matchedAgent, run: r })}
-                          style={{ cursor: "pointer" }}
-                          title="Click to view detailed report"
+                          onClick={() => setSelectedAgentId(r.agent_id)}
+                          style={{
+                            cursor: "pointer",
+                            backgroundColor: isSelected ? "#F0F6FC" : undefined,
+                            fontWeight: isSelected ? 600 : undefined,
+                          }}
+                          title="Click to view detailed report above"
                         >
                           <td>{i + 1}</td>
                           <td className="nowrap" style={{ fontSize: "0.8125rem" }}>{formatWhen(r.created_at)}</td>
@@ -770,6 +844,11 @@ export default function StandardAgentsPage() {
                             <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
                               {r.parent_run_id ? <span style={{ color: "var(--std-text-faint)" }}>↳</span> : null}
                               <strong>{r.agent_name}</strong>
+                              {isSelected ? (
+                                <span style={{ fontSize: "0.6875rem", backgroundColor: "#0B3B60", color: "#FFFFFF", padding: "1px 5px", borderRadius: "3px", marginLeft: "4px" }}>
+                                  ACTIVE
+                                </span>
+                              ) : null}
                             </div>
                           </td>
                           <td><StatusChip status={r.status} lang={language} /></td>
