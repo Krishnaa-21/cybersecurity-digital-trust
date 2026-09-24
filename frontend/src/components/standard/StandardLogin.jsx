@@ -19,6 +19,8 @@ export default function StandardLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!badgeId.trim() || !password.trim()) {
@@ -49,6 +51,87 @@ export default function StandardLogin() {
 
   return (
     <div className="std-shell">
+      {/* Top popup notification when Forgot Password is clicked */}
+      {showForgotPassword && (
+        <div
+          role="alert"
+          style={{
+            position: "fixed",
+            top: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 9999,
+            width: "min(92vw, 540px)",
+            backgroundColor: "#FFFFFF",
+            border: "2px solid #0B3B60",
+            borderRadius: "8px",
+            boxShadow: "0 10px 30px rgba(11, 42, 69, 0.25)",
+            padding: "16px 20px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "14px",
+            animation: "fadeIn 0.2s ease-in-out",
+          }}
+        >
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              backgroundColor: "#E6F0FA",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              color: "#0B3B60",
+              fontWeight: "bold",
+              fontSize: "18px",
+            }}
+          >
+            ℹ
+          </div>
+          <div style={{ flex: 1 }}>
+            <h3
+              style={{
+                margin: "0 0 4px",
+                fontSize: "14px",
+                fontWeight: "700",
+                color: "#0B3B60",
+              }}
+            >
+              {s.forgotPasswordTitle}
+            </h3>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12.5px",
+                color: "#334155",
+                lineHeight: "1.5",
+              }}
+            >
+              {s.forgotPasswordMsg}
+            </p>
+          </div>
+          <button
+            type="button"
+            id="close-forgot-password-popup"
+            onClick={() => setShowForgotPassword(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#64748B",
+              fontSize: "18px",
+              cursor: "pointer",
+              padding: "4px",
+              lineHeight: 1,
+            }}
+            title="Dismiss notification"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <a className="std-skip" href="#std-main">{s.skip}</a>
       <StandardUtilityBar />
       <div className="std-identity">
@@ -91,12 +174,41 @@ export default function StandardLogin() {
                   <input id="std-badge" className="std-input std-mono" autoComplete="username" value={badgeId} onChange={(e) => setBadgeId(e.target.value)} />
                 </div>
                 <div className="std-field">
-                  <label className="std-label" htmlFor="std-password">{s.loginPasswordLabel}</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <label className="std-label" htmlFor="std-password">{s.loginPasswordLabel}</label>
+                    <button
+                      type="button"
+                      id="std-forgot-password-btn"
+                      onClick={() => setShowForgotPassword(true)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--std-link, #0B5CAD)",
+                        fontSize: "0.8125rem",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        padding: 0,
+                      }}
+                    >
+                      {s.loginForgotPassword}
+                    </button>
+                  </div>
                   <input id="std-password" type="password" className="std-input" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <button type="submit" className="std-btn" disabled={isLoading}>
                   {isLoading ? s.loginAuthenticating : s.loginSubmit}
                 </button>
+                <div style={{ marginTop: "12px", textAlign: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="std-linkbtn"
+                    style={{ fontSize: "0.8125rem" }}
+                  >
+                    Need help accessing your account? {s.loginForgotPassword}
+                  </button>
+                </div>
               </form>
             </section>
           </div>

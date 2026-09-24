@@ -436,6 +436,105 @@
 .std-upload__item strong { display: block; font-size: 0.875rem; }
 .std-upload__item span { display: block; margin-bottom: 0.5rem; font-size: 0.8125rem; color: var(--std-text-muted); }
 
+/* ── 11b. AI Agent Mode Styles ─────────────────────────────────────────── */
+.std-agent-case-header {
+  background: #FFFFFF;
+  border: 1px solid var(--std-border);
+  border-left: 4px solid var(--std-navy);
+  border-radius: var(--std-radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(11, 42, 69, 0.04);
+}
+.std-agent-hero-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+  border: 1.5px solid var(--std-navy);
+  border-radius: 8px;
+  padding: 1.4rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(11, 42, 69, 0.07);
+}
+.std-agent-pipeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.std-agent-pipeline-step {
+  background: #FFFFFF;
+  border: 1px solid var(--std-border-soft);
+  border-radius: 6px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+.std-agent-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 768px) {
+  .std-agent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1200px) {
+  .std-agent-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.std-agent-card {
+  background: #FFFFFF;
+  border: 1px solid var(--std-border);
+  border-radius: 8px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(11, 42, 69, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.std-agent-card:hover {
+  border-color: var(--std-navy);
+  box-shadow: 0 4px 14px rgba(11, 42, 69, 0.10);
+}
+.std-agent-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+.std-agent-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #E8EEF5;
+  color: var(--std-navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.std-agent-card-body {
+  flex: 1 1 auto;
+  font-size: 0.875rem;
+  color: var(--std-text-muted);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+.std-agent-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--std-border-soft);
+}
+
 /* ── 12. Login page ─────────────────────────────────────────────────────── */
 .std-login { display: grid; gap: 1.25rem; grid-template-columns: 1fr; align-items: stretch; }
 @media (min-width: 900px) { .std-login { grid-template-columns: 1.15fr 1fr; } }
