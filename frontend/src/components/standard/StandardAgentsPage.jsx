@@ -206,118 +206,137 @@ function StandardAgentInspectorPanel({ agent, run, onClose, onRun, busy, lang = 
       </div>
 
       {/* ── HIGHLIGHTED REPORT & OUTCOME (Strong Visual Hierarchy) ─────── */}
-      <div style={{ padding: "18px 20px" }}>
+      <div style={{ padding: "12px 16px" }}>
         <div
           style={{
-            padding: "16px 18px",
+            padding: "10px 14px",
             backgroundColor: "#F0F6FC",
             border: "1.5px solid #0B3B60",
-            borderLeft: "6px solid #0B3B60",
+            borderLeft: "5px solid #0B3B60",
             borderRadius: "6px",
-            marginBottom: "18px",
+            marginBottom: "12px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px", marginBottom: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px", marginBottom: "4px" }}>
             <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", color: "#0B3B60" }}>
               {lang === "hi" ? "🎯 प्रकरण जाँच परिणाम एवं निष्कर्ष आख्या" : "🎯 Key Investigation Outcome & Finding"}
             </span>
 
-            <div style={{ fontSize: "11.5px", color: "#566274" }}>
-              <span>{lang === "hi" ? "जाँच समय:" : "Verified:"} {formatWhen(run?.created_at)}</span>
-              <span style={{ margin: "0 6px" }}>•</span>
-              <span>{lang === "hi" ? "अवधि:" : "Duration:"} {formatDuration(run?.duration_ms)}</span>
+            <div style={{ fontSize: "11px", color: "#566274" }}>
+              <span>{lang === "hi" ? "जाँच समय:" : "Verified:"} <strong>{formatWhen(run?.created_at)}</strong></span>
+              <span style={{ margin: "0 5px" }}>•</span>
+              <span>{lang === "hi" ? "अवधि:" : "Duration:"} <strong>{formatDuration(run?.duration_ms)}</strong></span>
             </div>
           </div>
 
-          <p style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "#0B2A45", lineHeight: "1.4" }}>
+          <p style={{ margin: 0, fontSize: "13.5px", fontWeight: "700", color: "#0B2A45", lineHeight: "1.35" }}>
             {run?.summary || "No summary recorded."}
           </p>
         </div>
 
-        {/* ── Two-Column Findings & Recommendations ────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "18px", marginBottom: "18px" }}>
+        {/* ── Two-Column Findings & Recommendations (Compact, no empty voids) ─ */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", alignItems: "start", gap: "12px", marginBottom: "12px" }}>
           {/* Key Discoveries */}
           <div
             style={{
-              padding: "14px",
+              padding: "10px 12px",
               backgroundColor: "#FFFFFF",
               border: "1px solid #D5DCE5",
               borderRadius: "6px",
             }}
           >
-            <h4 style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <h4 style={{ margin: "0 0 6px", fontSize: "12px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
               {s.agentsKeyFindings} ({findings.length})
             </h4>
 
             {findings.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "12.5px", color: "#566274", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#566274", fontStyle: "italic", padding: "4px 0" }}>
                 {lang === "hi" ? "इस जाँच में कोई विसंगति नहीं मिली।" : "No anomalies flagged in this run."}
               </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {findings.map((f, i) => (
                   <div
                     key={i}
                     style={{
-                      padding: "8px 10px",
+                      padding: "6px 8px",
                       backgroundColor: f.severity === "high" || f.severity === "critical" ? "#FDECEC" : f.severity === "medium" ? "#FFF3D1" : "#F6F8FB",
                       border: `1px solid ${f.severity === "high" || f.severity === "critical" ? "#D99A9A" : f.severity === "medium" ? "#DDB962" : "#D5DCE5"}`,
                       borderRadius: "4px",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "2px" }}>
                       <StatusBadge tone={f.severity === "high" || f.severity === "critical" ? "high" : f.severity === "medium" ? "medium" : "info"}>
                         {f.severity || "info"}
                       </StatusBadge>
-                      <strong style={{ fontSize: "12.5px", color: "#1B1B1B" }}>{f.title}</strong>
+                      <strong style={{ fontSize: "12px", color: "#1B1B1B" }}>{f.title}</strong>
                     </div>
-                    {f.detail && <p style={{ margin: 0, fontSize: "11.5px", color: "#3D4756" }}>{f.detail}</p>}
+                    {f.detail && <p style={{ margin: 0, fontSize: "11px", color: "#3D4756", lineHeight: "1.3" }}>{f.detail}</p>}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Recommended Next Actions */}
+          {/* Recommended Next Actions — Compact & Space-Efficient */}
           <div
             style={{
-              padding: "14px",
+              padding: "10px 12px",
               backgroundColor: "#FFFFFF",
               border: "1px solid #D5DCE5",
               borderRadius: "6px",
             }}
           >
-            <h4 style={{ margin: "0 0 10px", fontSize: "12.5px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <h4 style={{ margin: "0 0 6px", fontSize: "12px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
               {s.agentsNextSteps} ({recommendations.length})
             </h4>
 
             {recommendations.length === 0 ? (
-              <p style={{ margin: 0, fontSize: "12.5px", color: "#566274", fontStyle: "italic" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#566274", fontStyle: "italic", padding: "4px 0" }}>
                 {lang === "hi" ? "कोई विशेष अग्रिम कार्रवाई अनुशंसित नहीं।" : "No specific next steps recommended."}
               </p>
             ) : (
-              <ul style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "12.5px", color: "#1B1B1B", lineHeight: 1.55 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 {recommendations.map((r, i) => (
-                  <li key={i} style={{ marginBottom: "5px" }}>{r}</li>
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "7px",
+                      padding: "6px 8px",
+                      backgroundColor: "#F3F6F9",
+                      border: "1px solid #D5DCE5",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      lineHeight: "1.35",
+                      color: "#102A43",
+                    }}
+                  >
+                    <span style={{ color: "#0B3B60", fontWeight: "700", fontSize: "11px", flexShrink: 0, marginTop: "1px" }}>
+                      {i + 1}.
+                    </span>
+                    <span style={{ flex: 1 }}>{r}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Verification Steps Audit */}
+        {/* Verification Steps Audit (Compact inline chips) */}
         {steps.length > 0 && (
-          <div style={{ paddingTop: "10px", borderTop: "1px solid #E2E8F0", marginBottom: "14px" }}>
-            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#566274", display: "block", marginBottom: "6px" }}>
+          <div style={{ paddingTop: "8px", borderTop: "1px solid #E2E8F0", marginBottom: "10px" }}>
+            <span style={{ fontSize: "10.5px", fontWeight: "700", textTransform: "uppercase", color: "#566274", display: "block", marginBottom: "4px" }}>
               {s.agentsStepsTaken}
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
               {steps.map((st, i) => (
                 <span
                   key={i}
                   style={{
-                    fontSize: "11px",
-                    padding: "2px 8px",
+                    fontSize: "10.5px",
+                    padding: "2px 7px",
                     borderRadius: "4px",
                     backgroundColor: "#EEF1F5",
                     border: "1px solid #CBD5E1",
@@ -334,16 +353,16 @@ function StandardAgentInspectorPanel({ agent, run, onClose, onRun, busy, lang = 
         {/* Panel Foot */}
         <div
           style={{
-            paddingTop: "12px",
+            paddingTop: "8px",
             borderTop: "1px solid #E2E8F0",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
-            gap: "10px",
+            gap: "8px",
           }}
         >
-          <span style={{ fontSize: "11px", color: "#566274", fontFamily: "var(--std-font-mono, monospace)" }}>
+          <span style={{ fontSize: "10.5px", color: "#566274", fontFamily: "var(--std-font-mono, monospace)" }}>
             Audit Entry #{run?.id || "N/A"}
           </span>
 

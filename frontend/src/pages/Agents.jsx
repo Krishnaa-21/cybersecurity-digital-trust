@@ -156,18 +156,18 @@ function AgentInspectorPanel({ agent, run, onClose, onRun, busy }) {
   return (
     <section
       id="agent-inspector-section"
-      className="p-5 sm:p-6 rounded-2xl relative overflow-hidden transition-all animate-fade-in-up"
+      className="p-4 sm:p-5 rounded-xl relative overflow-hidden transition-all animate-fade-in-up"
       style={{
         background: "rgba(7, 13, 27, 0.95)",
         border: "1.5px solid rgba(0, 212, 255, 0.4)",
-        boxShadow: "0 0 40px rgba(0, 212, 255, 0.15), 0 12px 36px rgba(0, 0, 0, 0.6)",
+        boxShadow: "0 0 32px rgba(0, 212, 255, 0.12), 0 8px 28px rgba(0, 0, 0, 0.6)",
       }}
     >
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-cyan-500/15">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-cyan-500/15">
         <div className="flex items-center gap-3">
           <div
-            className="p-2.5 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="p-2 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{
               background: info.bgSoft || "rgba(0, 212, 255, 0.12)",
               border: `1px solid ${info.borderSoft || "rgba(0, 212, 255, 0.3)"}`,
@@ -177,178 +177,179 @@ function AgentInspectorPanel({ agent, run, onClose, onRun, busy }) {
             <Icon className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
                 INSPECTION REPORT
               </span>
-              <h3 className="text-base font-bold text-white tracking-tight">{info.simpleName}</h3>
+              <h3 className="text-[15px] font-bold text-white tracking-tight">{info.simpleName}</h3>
               <StatusPill status={run?.status || "completed"} />
             </div>
-            <p className="text-[12px] text-slate-400 mt-0.5">{info.tagline}</p>
+            <p className="text-[11.5px] text-slate-400 mt-0.5">{info.tagline}</p>
           </div>
         </div>
 
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-slate-700/60 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11.5px] font-medium text-slate-400 hover:text-white bg-white/5 hover:bg-white/10 border border-slate-700/60 transition-colors cursor-pointer"
           title="Close Inspector"
         >
           <span>Close Report</span>
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* ── HIGHLIGHTED RESULT & REPORT (Strong Visual Hierarchy) ────────── */}
+      {/* ── HIGHLIGHTED RESULT & REPORT (Strong Visual Hierarchy, Compact) ─ */}
       <div
-        className="mt-5 p-4 sm:p-5 rounded-xl transition-all border-l-4 border-l-[#00D4FF]"
+        className="mt-3.5 p-3 sm:p-3.5 rounded-lg transition-all border-l-4 border-l-[#00D4FF]"
         style={{
           background: "linear-gradient(135deg, rgba(0, 212, 255, 0.14) 0%, rgba(10, 22, 48, 0.90) 100%)",
           borderTop: "1px solid rgba(0, 212, 255, 0.35)",
           borderRight: "1px solid rgba(0, 212, 255, 0.35)",
           borderBottom: "1px solid rgba(0, 212, 255, 0.35)",
-          boxShadow: "0 4px 20px rgba(0, 212, 255, 0.12)",
+          boxShadow: "0 4px 16px rgba(0, 212, 255, 0.10)",
         }}
       >
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold bg-cyan-500/15 px-2.5 py-1 rounded-md border border-cyan-500/30">
-            <FileCheck2 className="w-4 h-4 text-cyan-300" />
+        <div className="flex items-center justify-between gap-2.5 flex-wrap mb-2">
+          <div className="inline-flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-wider text-cyan-400 font-bold bg-cyan-500/15 px-2 py-0.5 rounded border border-cyan-500/30">
+            <FileCheck2 className="w-3.5 h-3.5 text-cyan-300" />
             <span>Key Outcome &amp; Investigation Finding</span>
           </div>
 
-          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-300 bg-black/40 px-2.5 py-1 rounded-md border border-slate-700/60">
+          <div className="flex items-center gap-2 text-[10.5px] font-mono text-slate-300 bg-black/40 px-2 py-0.5 rounded border border-slate-700/60">
             <span>Verified: <strong>{formatWhen(run?.created_at)}</strong></span>
             <span className="text-slate-500">•</span>
             <span>Duration: <strong>{formatDuration(run?.duration_ms)}</strong></span>
           </div>
         </div>
 
-        <p className="text-base sm:text-lg font-bold text-white leading-relaxed">
+        <p className="text-[14px] sm:text-[15px] font-bold text-white leading-snug">
           {run?.summary || "Analysis completed successfully with zero blockers."}
         </p>
       </div>
 
-      {/* ── Two-Column Findings & Recommendations ──────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+      {/* ── Two-Column Findings & Recommendations (Compact, items-start) ─ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 mt-3.5 items-start">
         {/* Left Column: Key Discoveries */}
         <div
-          className="p-4 rounded-xl flex flex-col justify-between"
+          className="p-3 rounded-lg"
           style={{ background: "rgba(10, 18, 36, 0.6)", border: "1px solid rgba(0, 212, 255, 0.12)" }}
         >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-[12px] font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-bold">
-                <Sparkles className="w-4 h-4" />
-                <span>Key Discoveries ({findings.length})</span>
-              </h4>
-              <span className="text-[11px] text-slate-400 font-mono">Flagged items</span>
-            </div>
-
-            {findings.length === 0 ? (
-              <p className="text-slate-400 text-[12.5px] italic py-2">
-                No critical anomalies or suspicious flags discovered in this run.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {findings.map((f, i) => {
-                  const isHigh = f.severity === "critical" || f.severity === "high";
-                  const isMed = f.severity === "medium";
-                  return (
-                    <div
-                      key={i}
-                      className="p-3 rounded-xl flex items-start gap-2.5 transition-all"
-                      style={{
-                        background: isHigh
-                          ? "rgba(244, 63, 94, 0.08)"
-                          : isMed
-                          ? "rgba(245, 158, 11, 0.08)"
-                          : "rgba(15, 23, 42, 0.8)",
-                        border: `1px solid ${
-                          isHigh
-                            ? "rgba(244, 63, 94, 0.3)"
-                            : isMed
-                            ? "rgba(245, 158, 11, 0.3)"
-                            : "rgba(0, 212, 255, 0.15)"
-                        }`,
-                      }}
-                    >
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5 ${
-                          isHigh
-                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                            : isMed
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                            : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                        }`}
-                      >
-                        {f.severity || "info"}
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-semibold text-slate-100 text-[13px]">{f.title}</p>
-                        {f.detail && <p className="text-slate-400 text-[12px] mt-0.5">{f.detail}</p>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-[11.5px] font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-bold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Key Discoveries ({findings.length})</span>
+            </h4>
+            <span className="text-[10.5px] text-slate-400 font-mono">Flagged items</span>
           </div>
-        </div>
 
-        {/* Right Column: Recommended Next Actions */}
-        <div
-          className="p-4 rounded-xl flex flex-col justify-between"
-          style={{ background: "rgba(10, 18, 36, 0.6)", border: "1px solid rgba(0, 212, 255, 0.12)" }}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-[12px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Recommended Next Steps ({recommendations.length})</span>
-              </h4>
-              <span className="text-[11px] text-slate-400 font-mono">Action items</span>
-            </div>
-
-            {recommendations.length === 0 ? (
-              <p className="text-slate-400 text-[12.5px] italic py-2">
-                No immediate action steps required for this verification.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {recommendations.map((r, i) => (
+          {findings.length === 0 ? (
+            <p className="text-slate-400 text-[12px] italic py-1">
+              No critical anomalies or suspicious flags discovered in this run.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {findings.map((f, i) => {
+                const isHigh = f.severity === "critical" || f.severity === "high";
+                const isMed = f.severity === "medium";
+                return (
                   <div
                     key={i}
-                    className="p-2.5 rounded-lg flex items-start gap-2.5 text-slate-200"
-                    style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)" }}
+                    className="p-2 px-2.5 rounded-lg flex items-start gap-2 transition-all"
+                    style={{
+                      background: isHigh
+                        ? "rgba(244, 63, 94, 0.08)"
+                        : isMed
+                        ? "rgba(245, 158, 11, 0.08)"
+                        : "rgba(15, 23, 42, 0.8)",
+                      border: `1px solid ${
+                        isHigh
+                          ? "rgba(244, 63, 94, 0.3)"
+                          : isMed
+                          ? "rgba(245, 158, 11, 0.3)"
+                          : "rgba(0, 212, 255, 0.15)"
+                      }`,
+                    }}
                   >
-                    <ArrowRight className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span className="text-[12.5px] leading-relaxed">{r}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5 ${
+                        isHigh
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : isMed
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                      }`}
+                    >
+                      {f.severity || "info"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-100 text-[12.5px] leading-snug">{f.title}</p>
+                      {f.detail && <p className="text-slate-400 text-[11.5px] mt-0.5 leading-snug">{f.detail}</p>}
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Recommended Next Actions — Space Efficient */}
+        <div
+          className="p-3 rounded-lg"
+          style={{ background: "rgba(10, 18, 36, 0.6)", border: "1px solid rgba(0, 212, 255, 0.12)" }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-[11.5px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-bold">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Recommended Next Steps ({recommendations.length})</span>
+            </h4>
+            <span className="text-[10.5px] text-slate-400 font-mono">Action items</span>
           </div>
+
+          {recommendations.length === 0 ? (
+            <p className="text-slate-400 text-[12px] italic py-1">
+              No immediate action steps required for this verification.
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              {recommendations.map((r, i) => (
+                <div
+                  key={i}
+                  className="px-2.5 py-1.5 rounded-md flex items-start gap-2 text-slate-200"
+                  style={{
+                    background: "rgba(16, 185, 129, 0.08)",
+                    border: "1px solid rgba(16, 185, 129, 0.22)",
+                  }}
+                >
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 mt-0.5 flex-shrink-0">
+                    {i + 1}.
+                  </span>
+                  <span className="text-[12px] leading-snug text-slate-200">{r}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Verification Steps Audit */}
+      {/* Verification Steps Audit (Compact inline chips) */}
       {steps.length > 0 && (
-        <div className="mt-4 pt-3.5 border-t border-slate-800">
-          <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-2 font-medium">
+        <div className="mt-3 pt-2.5 border-t border-slate-800">
+          <span className="text-[10.5px] font-mono uppercase tracking-wider text-slate-400 block mb-1.5 font-medium">
             Verification Steps Executed
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {steps.map((st, i) => (
               <span
                 key={i}
-                className="px-2.5 py-1 rounded-md text-[11px] font-mono flex items-center gap-1.5"
+                className="px-2 py-0.5 rounded text-[10.5px] font-mono flex items-center gap-1"
                 style={{
                   background: "rgba(0, 212, 255, 0.05)",
                   border: "1px solid rgba(0, 212, 255, 0.15)",
                   color: "#94A3B8",
                 }}
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                <CheckCircle2 className="w-3 h-3 text-cyan-400" />
                 <span>{st.name}</span>
               </span>
             ))}
@@ -357,13 +358,13 @@ function AgentInspectorPanel({ agent, run, onClose, onRun, busy }) {
       )}
 
       {/* Action Footer */}
-      <div className="mt-5 pt-4 border-t border-cyan-500/15 flex items-center justify-between flex-wrap gap-3">
-        <span className="text-[11px] font-mono text-slate-500">Audit Record #{run?.id || "N/A"}</span>
-        <div className="flex items-center gap-2.5">
+      <div className="mt-3.5 pt-3 border-t border-cyan-500/15 flex items-center justify-between flex-wrap gap-2.5">
+        <span className="text-[10.5px] font-mono text-slate-500">Audit Record #{run?.id || "N/A"}</span>
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[12px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-[11.5px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
           >
             Dismiss
           </button>
