@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Workflow,
@@ -14,10 +14,11 @@ import {
   XCircle,
   Clock,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
   Shield,
   ExternalLink,
+  Eye,
+  X,
+  RotateCw,
 } from "lucide-react";
 import { useAgents, formatWhen, formatDuration, ORCHESTRATOR_ID } from "../../hooks/useAgents";
 import { Breadcrumb, PageHeader, StatusBadge, TableMessage, riskScoreOf } from "./StandardUI";
@@ -29,7 +30,7 @@ const AGENT_META = {
     icon: Workflow,
     simpleNameEn: "Full Case Auto-Pilot",
     simpleNameHi: "सम्पूर्ण केस ऑटो-पायलट",
-    taglineEn: "Runs all 5 investigation agents in sequence with one click",
+    taglineEn: "Runs all 5 investigation agents in 1 click",
     taglineHi: "एक क्लिक में सभी 5 जाँच एजेंटों को क्रमबद्ध चलाएं",
     descEn: "Scans suspect accounts, finds links to other cases, scores fraud risk, maps police jurisdiction, and writes a complete summary report.",
     descHi: "संदिग्ध खातों की जांच, क्रॉस-केस लिंक, जोखिम स्कोर, थाना क्षेत्राधिकार और पूर्ण सारांश रिपोर्ट तैयार करता है।",
@@ -39,7 +40,7 @@ const AGENT_META = {
     icon: FileSearch,
     simpleNameEn: "Evidence Extractor",
     simpleNameHi: "डिजिटल साक्ष्य निष्कर्षण",
-    taglineEn: "Finds and verifies phone numbers, bank accounts, and UPIs",
+    taglineEn: "Finds phone numbers, bank accounts & UPIs",
     taglineHi: "फ़ोन नंबर, बैंक खाते एवं यूपीआई विवरण निकालें",
     descEn: "Pulls every phone number, UPI handle, bank account, and IP address from this case and checks their validity.",
     descHi: "इस प्रकरण से जुड़े सभी मोबाइल नंबर, यूपीआई, बैंक खाते और आईपी एड्रेस को निकालकर सत्यापित करता है।",
@@ -50,6 +51,7 @@ const AGENT_META = {
     simpleNameEn: "Cross-Case Matcher",
     simpleNameHi: "क्रॉस-केस संबंध खोजकर्ता",
     taglineEn: "Discovers links to other criminal cases",
+    taglineHi: "अन्य आपराधिक प्रकरणों से संबंध खोजें",
     descEn: "Checks if suspect bank accounts, phones, or devices were also used in other fraud cases across the network.",
     descHi: "जांच करता है कि क्या संदिग्ध बैंक खाते, फोन या डिवाइस राज्य नेटवर्क के अन्य धोखाधड़ी मामलों में भी जुड़े हैं।",
     badge: "Network",
@@ -59,6 +61,7 @@ const AGENT_META = {
     simpleNameEn: "Scam Risk Analyzer",
     simpleNameHi: "जोखिम एवं खतरा विश्लेषक",
     taglineEn: "Calculates risk score and flags danger",
+    taglineHi: "जोखिम स्कोर एवं खतरे का सटीक आकलन",
     descEn: "Estimates how dangerous this scam is, calculates the risk score (0-100), and spots organized cyber fraud patterns.",
     descHi: "धोखाधड़ी के खतरे का सटीक आकलन करता है, 0-100 स्कोर निर्धारित करता है और संगठित गिरोहों की पहचान करता है।",
     badge: "Threat",
@@ -68,6 +71,7 @@ const AGENT_META = {
     simpleNameEn: "Jurisdiction & Police Mapper",
     simpleNameHi: "क्षेत्राधिकार एवं थाना लोकेटर",
     taglineEn: "Identifies the responsible police station",
+    taglineHi: "अधिकृत पुलिस थाना पहचानें",
     descEn: "Determines which police station or cyber nodal cell has legal authority to take formal action on this case.",
     descHi: "पहचान करता है कि किस स्थानीय पुलिस थाने अथवा साइबर नोडल सेल को इस प्रकरण पर कार्रवाई का कानूनी अधिकार है।",
     badge: "Jurisdiction",
@@ -76,7 +80,8 @@ const AGENT_META = {
     icon: FileText,
     simpleNameEn: "Case Report Builder",
     simpleNameHi: "प्रकरण रिपोर्ट निर्माता",
-    taglineEn: "Generates your Section 65B ready case summary",
+    taglineEn: "Generates your Section 65B case summary",
+    taglineHi: "धारा 65बी प्रमाण पत्र एवं सारांश तैयार करें",
     descEn: "Compiles all findings, suspect details, and next recommended actions into an easy-to-read official summary.",
     descHi: "सभी निष्कर्षों, संदिग्ध विवरणों और अनुशंसित कार्रवाइयों को एक आधिकारिक कानूनी सारांश में संकलित करता है।",
     badge: "Report",
@@ -103,69 +108,262 @@ function StatusChip({ status, lang = "en" }) {
   );
 }
 
-/** Clean accordion findings drawer for Standard Mode */
-function FindingsDrawer({ run, lang = "en" }) {
-  const result = run.result || {};
+/** Standard Mode Modal for inspecting agent run findings */
+function StandardAgentModal({ data, onClose, onRun, busy, lang = "en" }) {
+  const { agent, run } = data;
   const s = t(lang);
+  const meta = AGENT_META[agent.id] || {
+    icon: Shield,
+    simpleNameEn: agent.name,
+    simpleNameHi: agent.name,
+    taglineEn: agent.role,
+    taglineHi: agent.role,
+  };
+  const Icon = meta.icon;
+  const result = run?.result || {};
+  const findings = result.findings || [];
+  const recommendations = result.recommendations || [];
+  const steps = result.steps || [];
+
+  // Close on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   return (
-    <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--std-border-soft)" }}>
-      {/* Findings */}
-      {result.findings?.length > 0 && (
-        <div style={{ marginBottom: "0.85rem" }}>
-          <strong style={{ fontSize: "0.8125rem", color: "var(--std-navy)", display: "block", marginBottom: "0.4rem" }}>
-            {s.agentsKeyFindings} ({result.findings.length})
-          </strong>
-          <ul style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.8125rem", color: "var(--std-text)" }}>
-            {result.findings.map((f, i) => (
-              <li key={i} style={{ marginBottom: "0.3rem" }}>
-                <strong>{f.title}</strong>
-                {f.detail ? <span style={{ color: "var(--std-text-muted)" }}> — {f.detail}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {result.recommendations?.length > 0 && (
-        <div style={{ marginBottom: "0.85rem" }}>
-          <strong style={{ fontSize: "0.8125rem", color: "var(--std-navy)", display: "block", marginBottom: "0.4rem" }}>
-            {s.agentsNextSteps}
-          </strong>
-          <ul style={{ margin: 0, paddingLeft: "1.2rem", fontSize: "0.8125rem", color: "var(--std-text)" }}>
-            {result.recommendations.map((r, i) => (
-              <li key={i} style={{ marginBottom: "0.25rem" }}>{r}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Steps performed */}
-      {result.steps?.length > 0 && (
-        <div>
-          <strong style={{ fontSize: "0.8125rem", color: "var(--std-navy)", display: "block", marginBottom: "0.4rem" }}>
-            {s.agentsStepsTaken}
-          </strong>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            {result.steps.map((st, i) => (
-              <span
-                key={i}
-                style={{
-                  fontSize: "0.75rem",
-                  padding: "2px 8px",
-                  borderRadius: "4px",
-                  backgroundColor: "#F1F5F9",
-                  border: "1px solid #CBD5E1",
-                  color: "#334155",
-                }}
-              >
-                ✓ {st.name}
+    <div
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "1rem",
+        backgroundColor: "rgba(11, 42, 69, 0.65)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "680px",
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#FFFFFF",
+          border: "2px solid #0B3B60",
+          borderRadius: "8px",
+          boxShadow: "0 16px 48px rgba(11, 42, 69, 0.35)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Modal Head */}
+        <div
+          style={{
+            padding: "14px 20px",
+            backgroundColor: "#0B3B60",
+            color: "#FFFFFF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "6px",
+                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#FFFFFF",
+              }}
+            >
+              <Icon size={20} />
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700", color: "#FFFFFF" }}>
+                  {lang === "hi" ? meta.simpleNameHi : meta.simpleNameEn}
+                </h3>
+                <StatusChip status={run?.status || "completed"} lang={lang} />
+              </div>
+              <span style={{ fontSize: "12px", color: "#D6E2EE" }}>
+                {lang === "hi" ? meta.taglineHi : meta.taglineEn}
               </span>
-            ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "1px solid rgba(255, 255, 255, 0.4)",
+              color: "#FFFFFF",
+              borderRadius: "4px",
+              padding: "4px 8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              lineHeight: 1,
+            }}
+            title="Close dialog (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+          {/* Summary Box */}
+          <div
+            style={{
+              padding: "14px 16px",
+              backgroundColor: "#F6F8FB",
+              border: "1px solid #D5DCE5",
+              borderLeft: "4px solid #0B3B60",
+              borderRadius: "6px",
+              marginBottom: "18px",
+            }}
+          >
+            <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#0B3B60", display: "block", marginBottom: "4px" }}>
+              {lang === "hi" ? "कार्यकारी सारांश" : "Executive Summary"}
+            </span>
+            <p style={{ margin: 0, fontSize: "13.5px", fontWeight: "600", color: "#1B1B1B" }}>
+              {run?.summary || "No summary recorded."}
+            </p>
+            <span style={{ fontSize: "11.5px", color: "#566274", display: "block", marginTop: "6px" }}>
+              {lang === "hi" ? "सत्यापन समय:" : "Executed:"} {formatWhen(run?.created_at)} · {formatDuration(run?.duration_ms)}
+            </span>
+          </div>
+
+          {/* Key Findings */}
+          <div style={{ marginBottom: "18px" }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: "13px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              {s.agentsKeyFindings} ({findings.length})
+            </h4>
+            {findings.length === 0 ? (
+              <p style={{ margin: 0, fontSize: "13px", color: "#566274", fontStyle: "italic" }}>
+                {lang === "hi" ? "इस जाँच में कोई विसंगति नहीं मिली।" : "No anomalies flagged in this run."}
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {findings.map((f, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "10px 12px",
+                      backgroundColor: f.severity === "high" || f.severity === "critical" ? "#FDECEC" : f.severity === "medium" ? "#FFF3D1" : "#F6F8FB",
+                      border: `1px solid ${f.severity === "high" || f.severity === "critical" ? "#D99A9A" : f.severity === "medium" ? "#DDB962" : "#D5DCE5"}`,
+                      borderRadius: "6px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "3px" }}>
+                      <StatusBadge tone={f.severity === "high" || f.severity === "critical" ? "high" : f.severity === "medium" ? "medium" : "info"}>
+                        {f.severity || "info"}
+                      </StatusBadge>
+                      <strong style={{ fontSize: "13px", color: "#1B1B1B" }}>{f.title}</strong>
+                    </div>
+                    {f.detail && <p style={{ margin: 0, fontSize: "12px", color: "#3D4756" }}>{f.detail}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recommendations */}
+          <div style={{ marginBottom: "18px" }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: "13px", fontWeight: "700", color: "#0B3B60", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+              {s.agentsNextSteps} ({recommendations.length})
+            </h4>
+            {recommendations.length === 0 ? (
+              <p style={{ margin: 0, fontSize: "13px", color: "#566274", fontStyle: "italic" }}>
+                {lang === "hi" ? "कोई विशेष अग्रिम कार्रवाई अनुशंसित नहीं।" : "No specific next steps recommended."}
+              </p>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "13px", color: "#1B1B1B", lineHeight: 1.6 }}>
+                {recommendations.map((r, i) => (
+                  <li key={i} style={{ marginBottom: "4px" }}>{r}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Steps */}
+          {steps.length > 0 && (
+            <div style={{ paddingTop: "12px", borderTop: "1px solid #D5DCE5" }}>
+              <span style={{ fontSize: "11px", fontWeight: "700", textTransform: "uppercase", color: "#566274", display: "block", marginBottom: "6px" }}>
+                {s.agentsStepsTaken}
+              </span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                {steps.map((st, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: "11.5px",
+                      padding: "2px 8px",
+                      borderRadius: "4px",
+                      backgroundColor: "#EEF1F5",
+                      border: "1px solid #CBD5E1",
+                      color: "#1B1B1B",
+                    }}
+                  >
+                    ✓ {st.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div
+          style={{
+            padding: "12px 20px",
+            backgroundColor: "#F6F8FB",
+            borderTop: "1px solid #D5DCE5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: "11px", color: "#566274", fontFamily: "var(--std-font-mono, monospace)" }}>
+            Audit Entry #{run?.id || "N/A"}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <button type="button" className="std-btn std-btn--secondary std-btn--sm" onClick={onClose}>
+              {lang === "hi" ? "बंद करें" : "Close"}
+            </button>
+            <button
+              type="button"
+              className="std-btn std-btn--sm"
+              disabled={busy}
+              onClick={() => {
+                onClose();
+                onRun(agent.id);
+              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}
+            >
+              <RotateCw size={13} />
+              <span>{s.agentsRunAgainBtn}</span>
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -174,7 +372,7 @@ export default function StandardAgentsPage() {
   const { language } = useMode();
   const s = t(language);
   const { agents, cases, runs, loading, error, caseId, selectedCase, selectCase, runAgent, runningId, latestByAgent } = useAgents();
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeModalRun, setActiveModalRun] = useState(null);
 
   const orchestrator = agents.find((a) => a.id === ORCHESTRATOR_ID);
   const specialists = agents.filter((a) => a.id !== ORCHESTRATOR_ID);
@@ -184,6 +382,17 @@ export default function StandardAgentsPage() {
 
   return (
     <>
+      {/* ── Standard Mode Inspection Modal ──────────────────────────────── */}
+      {activeModalRun && (
+        <StandardAgentModal
+          data={activeModalRun}
+          onClose={() => setActiveModalRun(null)}
+          onRun={runAgent}
+          busy={busy}
+          lang={language}
+        />
+      )}
+
       <Breadcrumb items={[{ label: s.home, to: "/" }, { label: s.agents }]} />
 
       <PageHeader
@@ -333,11 +542,11 @@ export default function StandardAgentsPage() {
 
                 <div className="std-agent-pipeline-grid">
                   {[
-                    { id: "digital_evidence", name: "1. Extract Evidence", desc: "Extracts phone, UPI & accounts" },
-                    { id: "correlation", name: "2. Cross-Case Links", desc: "Finds shared scammer trails" },
-                    { id: "threat_analysis", name: "3. Score Scam Risk", desc: "Calculates threat rating 0-100" },
-                    { id: "jurisdiction", name: "4. Police Station", desc: "Maps jurisdictional boundary" },
-                    { id: "investigation_report", name: "5. Case Summary", desc: "Drafts ready legal report" },
+                    { id: "digital_evidence", name: "1. Evidence Scanner", desc: "Phone, UPI & accounts" },
+                    { id: "correlation", name: "2. Cross-Case Links", desc: "Shared scam networks" },
+                    { id: "threat_analysis", name: "3. Risk Score", desc: "Threat rating 0-100" },
+                    { id: "jurisdiction", name: "4. Police Station", desc: "Jurisdictional authority" },
+                    { id: "investigation_report", name: "5. Case Summary", desc: "Legal Section 65B summary" },
                   ].map((st) => {
                     const child = pipeline.find((p) => p.agent_id === st.id);
                     const stStatus = child ? child.status : orchRun ? "completed" : "idle";
@@ -354,19 +563,43 @@ export default function StandardAgentsPage() {
                 </div>
               </div>
 
-              {/* Results if run exists */}
+              {/* Latest Result Banner */}
               {orchRun && (
-                <div style={{ marginTop: "1rem", backgroundColor: "#FFFFFF", padding: "1rem", borderRadius: "6px", border: "1px solid var(--std-border-soft)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                    <div>
-                      <strong style={{ fontSize: "0.875rem", color: "var(--std-navy)" }}>Last Auto-Pilot Summary:</strong>
-                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.875rem", color: "var(--std-text)" }}>{orchRun.summary}</p>
-                    </div>
-                    <span style={{ fontSize: "0.75rem", color: "var(--std-text-faint)" }}>
-                      {formatWhen(orchRun.created_at)} ({formatDuration(orchRun.duration_ms)})
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    backgroundColor: "#FFFFFF",
+                    padding: "0.85rem 1rem",
+                    borderRadius: "6px",
+                    border: "1px solid var(--std-border-soft)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: 0 }}>
+                    <strong style={{ fontSize: "0.875rem", color: "var(--std-navy)", whiteSpace: "nowrap" }}>
+                      Latest Result:
+                    </strong>
+                    <span style={{ fontSize: "0.875rem", color: "var(--std-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {orchRun.summary}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--std-text-faint)", whiteSpace: "nowrap" }}>
+                      ({formatDuration(orchRun.duration_ms)})
                     </span>
                   </div>
-                  <FindingsDrawer run={orchRun} lang={language} />
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalRun({ agent: orchestrator, run: orchRun })}
+                    className="std-btn std-btn--secondary std-btn--sm"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+                  >
+                    <Eye size={13} />
+                    <span>{language === "hi" ? "पूर्ण रिपोर्ट देखें" : "View Full Auto-Pilot Report"}</span>
+                  </button>
                 </div>
               )}
             </section>
@@ -392,13 +625,12 @@ export default function StandardAgentsPage() {
                 taglineHi: agent.role,
                 descEn: agent.description,
                 descHi: agent.description,
-                badge: "Specialist",
               };
               const Icon = meta.icon;
               const run = latestByAgent[agent.id];
               const isRunning = runningId === agent.id;
-              const isExpanded = expandedId === agent.id;
               const currentStatus = isRunning ? "running" : run?.status || "idle";
+              const findingsCount = run?.result?.findings?.length || 0;
 
               return (
                 <article key={agent.id} className="std-agent-card" aria-label={meta.simpleNameEn}>
@@ -420,24 +652,38 @@ export default function StandardAgentsPage() {
                   </div>
 
                   <div className="std-agent-card-body">
-                    <p style={{ margin: "0 0 0.5rem" }}>
+                    <p style={{ margin: "0 0 0.65rem", minHeight: "38px" }}>
                       {language === "hi" ? meta.descHi : meta.descEn}
                     </p>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.75rem" }}>
-                      <span style={{ padding: "1px 6px", backgroundColor: "#F1F5F9", borderRadius: "3px", color: "#475569" }}>
-                        {agent.access === "read_only" ? "Safe (Read-only)" : "Updates case record"}
-                      </span>
+                    {/* Compact Highlight Box */}
+                    <div
+                      style={{
+                        padding: "8px 10px",
+                        backgroundColor: run ? "#F6F8FB" : "#F8FAFC",
+                        borderRadius: "4px",
+                        border: `1px solid ${run ? "#D5DCE5" : "#E2E8F0"}`,
+                        minHeight: "46px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {run ? (
+                        <>
+                          <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--std-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {run.summary}
+                          </div>
+                          <span style={{ fontSize: "0.7rem", color: "var(--std-text-faint)", marginTop: "2px" }}>
+                            {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
+                          </span>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: "0.75rem", color: "var(--std-text-faint)", fontStyle: "italic" }}>
+                          {language === "hi" ? "इस केस पर अभी नहीं चलाया गया।" : "Not run yet on this case."}
+                        </span>
+                      )}
                     </div>
-
-                    {run && (
-                      <div style={{ marginTop: "0.75rem", padding: "0.5rem 0.65rem", backgroundColor: "#F8FAFC", borderRadius: "4px", border: "1px solid var(--std-border-soft)", fontSize: "0.8125rem" }}>
-                        <div style={{ color: "var(--std-text)", fontWeight: 500 }}>{run.summary}</div>
-                        <div style={{ fontSize: "0.72rem", color: "var(--std-text-faint)", marginTop: "2px" }}>
-                          {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="std-agent-card-actions">
@@ -456,18 +702,18 @@ export default function StandardAgentsPage() {
                     {run && (
                       <button
                         type="button"
-                        id={`btn-toggle-${agent.id}`}
-                        onClick={() => setExpandedId(isExpanded ? null : agent.id)}
+                        id={`btn-inspect-${agent.id}`}
+                        onClick={() => setActiveModalRun({ agent, run })}
                         className="std-linkbtn"
-                        style={{ fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "0.2rem" }}
+                        style={{ fontSize: "0.8125rem", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
                       >
-                        <span>{isExpanded ? s.agentsHideFindings : s.agentsViewFindings}</span>
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        <Eye size={13} />
+                        <span>
+                          {s.agentsViewFindings} {findingsCount > 0 ? `(${findingsCount})` : ""}
+                        </span>
                       </button>
                     )}
                   </div>
-
-                  {run && isExpanded && <FindingsDrawer run={run} lang={language} />}
                 </article>
               );
             })}
@@ -505,21 +751,33 @@ export default function StandardAgentsPage() {
                   {runs.length === 0 ? (
                     <TableMessage colSpan={6}>{s.agentsNoRunsYet}</TableMessage>
                   ) : (
-                    runs.map((r, i) => (
-                      <tr key={r.id}>
-                        <td>{i + 1}</td>
-                        <td className="nowrap" style={{ fontSize: "0.8125rem" }}>{formatWhen(r.created_at)}</td>
-                        <td>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                            {r.parent_run_id ? <span style={{ color: "var(--std-text-faint)" }}>↳</span> : null}
-                            <strong>{r.agent_name}</strong>
-                          </div>
-                        </td>
-                        <td><StatusChip status={r.status} lang={language} /></td>
-                        <td style={{ fontSize: "0.8125rem", lineHeight: 1.45 }}>{r.summary}</td>
-                        <td className="num nowrap" style={{ fontSize: "0.8125rem" }}>{formatDuration(r.duration_ms)}</td>
-                      </tr>
-                    ))
+                    runs.map((r, i) => {
+                      const matchedAgent = agents.find((a) => a.id === r.agent_id) || {
+                        id: r.agent_id,
+                        name: r.agent_name,
+                        role: "Specialist",
+                      };
+                      return (
+                        <tr
+                          key={r.id}
+                          onClick={() => setActiveModalRun({ agent: matchedAgent, run: r })}
+                          style={{ cursor: "pointer" }}
+                          title="Click to view detailed report"
+                        >
+                          <td>{i + 1}</td>
+                          <td className="nowrap" style={{ fontSize: "0.8125rem" }}>{formatWhen(r.created_at)}</td>
+                          <td>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                              {r.parent_run_id ? <span style={{ color: "var(--std-text-faint)" }}>↳</span> : null}
+                              <strong>{r.agent_name}</strong>
+                            </div>
+                          </td>
+                          <td><StatusChip status={r.status} lang={language} /></td>
+                          <td style={{ fontSize: "0.8125rem", lineHeight: 1.45 }}>{r.summary}</td>
+                          <td className="num nowrap" style={{ fontSize: "0.8125rem" }}>{formatDuration(r.duration_ms)}</td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

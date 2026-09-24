@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Bot,
@@ -15,23 +15,24 @@ import {
   XCircle,
   Clock,
   ArrowRight,
-  ChevronDown,
-  ChevronUp,
   Sparkles,
   ExternalLink,
   ShieldCheck,
   Zap,
+  X,
+  Eye,
+  RotateCw,
 } from "lucide-react";
 import { useAgents, formatWhen, formatDuration, ORCHESTRATOR_ID } from "../hooks/useAgents";
 
-const AGENT_INFO = {
+const AGENT_CONFIG = {
   case_orchestrator: {
     icon: Workflow,
     color: "#00D4FF",
     bgSoft: "rgba(0, 212, 255, 0.12)",
     borderSoft: "rgba(0, 212, 255, 0.35)",
     simpleName: "Full Case Auto-Pilot",
-    tagline: "Runs all 5 investigation agents in sequence with 1 click",
+    tagline: "Runs all 5 investigation agents in 1 click",
     description: "Extracts evidence, tracks criminal links across cases, calculates risk, maps the responsible police station, and writes your case report in one step.",
     actionText: "Run Full Auto-Pilot",
   },
@@ -41,7 +42,7 @@ const AGENT_INFO = {
     bgSoft: "rgba(0, 229, 200, 0.12)",
     borderSoft: "rgba(0, 229, 200, 0.3)",
     simpleName: "Evidence Extractor",
-    tagline: "Finds and verifies phone numbers, bank accounts, and UPIs",
+    tagline: "Finds phone numbers, bank accounts & UPIs",
     description: "Pulls every suspect phone number, UPI handle, bank account, and IP address from this case and checks their validity.",
     actionText: "Scan Evidence",
   },
@@ -81,7 +82,7 @@ const AGENT_INFO = {
     bgSoft: "rgba(56, 189, 248, 0.12)",
     borderSoft: "rgba(56, 189, 248, 0.3)",
     simpleName: "Case Report Builder",
-    tagline: "Generates your Section 65B ready case summary",
+    tagline: "Generates your Section 65B case summary",
     description: "Compiles all findings, suspect details, and next recommended actions into an easy-to-read official summary.",
     actionText: "Generate Report",
   },
@@ -125,7 +126,7 @@ function StatusPill({ status }) {
   const Icon = conf.Icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-medium tracking-wide ${conf.badgeCls}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[11px] font-medium tracking-wide flex-shrink-0 ${conf.badgeCls}`}
     >
       <Icon className={`w-3.5 h-3.5 ${status === "running" ? "animate-spin" : ""}`} />
       <span>{conf.label}</span>
@@ -133,116 +134,235 @@ function StatusPill({ status }) {
   );
 }
 
-/** Clean accordion findings drawer for Analysis Mode */
-function FindingsDrawer({ run }) {
-  const result = run.result || {};
+/** Detail Inspection Modal to keep cards balanced without uneven height jumps */
+function AgentDetailModal({ data, onClose, onRun, busy }) {
+  const { agent, run } = data;
+  const info = AGENT_CONFIG[agent.id] || {
+    icon: Bot,
+    color: "#00D4FF",
+    simpleName: agent.name,
+    tagline: agent.role,
+  };
+  const Icon = info.icon;
+  const result = run?.result || {};
   const findings = result.findings || [];
   const recommendations = result.recommendations || [];
   const steps = result.steps || [];
 
+  // Close on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   return (
     <div
-      className="mt-3.5 pt-3.5 space-y-3.5 text-[12px] border-t"
-      style={{ borderColor: "rgba(0, 212, 255, 0.12)" }}
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      style={{ background: "rgba(0, 0, 0, 0.75)", backdropFilter: "blur(8px)" }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      {/* Key Findings */}
-      {findings.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-cyan-400 mb-2">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Key Findings ({findings.length})</span>
+      <div
+        className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up"
+        style={{
+          background: "#080E1C",
+          border: "1px solid rgba(0, 212, 255, 0.35)",
+          boxShadow: "0 0 50px rgba(0, 212, 255, 0.15), 0 20px 50px rgba(0, 0, 0, 0.9)",
+        }}
+      >
+        {/* Modal Header */}
+        <div
+          className="px-6 py-4 flex items-center justify-between border-b flex-shrink-0"
+          style={{ borderColor: "rgba(0, 212, 255, 0.15)", background: "rgba(10, 18, 36, 0.85)" }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="p-2.5 rounded-xl flex items-center justify-center"
+              style={{ background: info.bgSoft || "rgba(0, 212, 255, 0.12)", color: info.color }}
+            >
+              <Icon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-white">{info.simpleName}</h3>
+                <StatusPill status={run?.status || "completed"} />
+              </div>
+              <p className="text-[12px] text-slate-400">{info.tagline}</p>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            {findings.map((f, i) => {
-              const isHigh = f.severity === "critical" || f.severity === "high";
-              const isMed = f.severity === "medium";
-              return (
-                <div
-                  key={i}
-                  className="p-2.5 rounded-lg flex items-start gap-2.5 transition-all"
-                  style={{
-                    background: isHigh
-                      ? "rgba(244, 63, 94, 0.08)"
-                      : isMed
-                      ? "rgba(245, 158, 11, 0.08)"
-                      : "rgba(15, 23, 42, 0.6)",
-                    border: `1px solid ${
-                      isHigh
-                        ? "rgba(244, 63, 94, 0.25)"
-                        : isMed
-                        ? "rgba(245, 158, 11, 0.25)"
-                        : "rgba(0, 212, 255, 0.10)"
-                    }`,
-                  }}
-                >
-                  <span
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5 ${
-                      isHigh
-                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                        : isMed
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                        : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                    }`}
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+            title="Close dialog (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Scrollable Body */}
+        <div className="p-6 overflow-y-auto space-y-5 text-[13px] leading-relaxed">
+          {/* Main Outcome Callout */}
+          <div
+            className="p-4 rounded-xl"
+            style={{
+              background: "rgba(0, 212, 255, 0.06)",
+              border: "1px solid rgba(0, 212, 255, 0.2)",
+            }}
+          >
+            <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold block mb-1">
+              Executive Summary
+            </span>
+            <p className="text-slate-100 text-[13.5px] font-medium m-0">{run?.summary || "No summary provided."}</p>
+            <div className="mt-2 text-[11px] font-mono text-slate-400">
+              Run completed: {formatWhen(run?.created_at)} · Runtime: {formatDuration(run?.duration_ms)}
+            </div>
+          </div>
+
+          {/* Key Findings */}
+          <div>
+            <h4 className="text-[12px] font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 mb-2.5">
+              <Sparkles className="w-4 h-4" />
+              <span>Key Discoveries ({findings.length})</span>
+            </h4>
+            {findings.length === 0 ? (
+              <p className="text-slate-400 text-[12.5px] italic">No specific anomalies flagged in this run.</p>
+            ) : (
+              <div className="space-y-2">
+                {findings.map((f, i) => {
+                  const isHigh = f.severity === "critical" || f.severity === "high";
+                  const isMed = f.severity === "medium";
+                  return (
+                    <div
+                      key={i}
+                      className="p-3 rounded-xl flex items-start gap-3"
+                      style={{
+                        background: isHigh
+                          ? "rgba(244, 63, 94, 0.08)"
+                          : isMed
+                          ? "rgba(245, 158, 11, 0.08)"
+                          : "rgba(15, 23, 42, 0.7)",
+                        border: `1px solid ${
+                          isHigh
+                            ? "rgba(244, 63, 94, 0.25)"
+                            : isMed
+                            ? "rgba(245, 158, 11, 0.25)"
+                            : "rgba(0, 212, 255, 0.12)"
+                        }`,
+                      }}
+                    >
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider flex-shrink-0 mt-0.5 ${
+                          isHigh
+                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                            : isMed
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                            : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                        }`}
+                      >
+                        {f.severity || "info"}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-100 text-[13px]">{f.title}</p>
+                        {f.detail && <p className="text-slate-400 text-[12px] mt-1">{f.detail}</p>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Recommended Next Actions */}
+          <div>
+            <h4 className="text-[12px] font-mono uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 mb-2.5">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Recommended Next Steps ({recommendations.length})</span>
+            </h4>
+            {recommendations.length === 0 ? (
+              <p className="text-slate-400 text-[12.5px] italic">No immediate next steps suggested.</p>
+            ) : (
+              <div className="space-y-2">
+                {recommendations.map((r, i) => (
+                  <div
+                    key={i}
+                    className="p-2.5 rounded-lg flex items-start gap-2.5 text-slate-200"
+                    style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.2)" }}
                   >
-                    {f.severity || "info"}
-                  </span>
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-200">{f.title}</p>
-                    {f.detail && <p className="text-slate-400 text-[11.5px] mt-0.5">{f.detail}</p>}
+                    <ArrowRight className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <span>{r}</span>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
 
-      {/* Suggested Next Steps */}
-      {recommendations.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-emerald-400 mb-2">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Recommended Next Actions</span>
-          </div>
-          <ul className="space-y-1.5">
-            {recommendations.map((r, i) => (
-              <li
-                key={i}
-                className="flex items-start gap-2 text-slate-300 p-2 rounded-md"
-                style={{ background: "rgba(16, 185, 129, 0.05)", border: "1px solid rgba(16, 185, 129, 0.15)" }}
-              >
-                <ArrowRight className="w-3.5 h-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>{r}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Steps executed */}
-      {steps.length > 0 && (
-        <div className="pt-2">
-          <p className="text-[10.5px] font-mono uppercase tracking-wider text-slate-400 mb-1.5">
-            Execution Steps Completed
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {steps.map((st, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 rounded text-[11px] font-mono flex items-center gap-1"
-                style={{
-                  background: "rgba(0, 212, 255, 0.06)",
-                  border: "1px solid rgba(0, 212, 255, 0.15)",
-                  color: "#94A3B8",
-                }}
-              >
-                <CheckCircle2 className="w-3 h-3 text-cyan-400" />
-                <span>{st.name}</span>
+          {/* Completed Steps */}
+          {steps.length > 0 && (
+            <div className="pt-2 border-t border-slate-800">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block mb-2">
+                Verification Steps Executed
               </span>
-            ))}
+              <div className="flex flex-wrap gap-2">
+                {steps.map((st, i) => (
+                  <span
+                    key={i}
+                    className="px-2.5 py-1 rounded-md text-[11.5px] font-mono flex items-center gap-1.5"
+                    style={{
+                      background: "rgba(0, 212, 255, 0.05)",
+                      border: "1px solid rgba(0, 212, 255, 0.15)",
+                      color: "#94A3B8",
+                    }}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{st.name}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div
+          className="px-6 py-3.5 border-t flex items-center justify-between flex-shrink-0"
+          style={{ borderColor: "rgba(0, 212, 255, 0.15)", background: "rgba(10, 18, 36, 0.85)" }}
+        >
+          <span className="text-[11px] font-mono text-slate-500">Run Record #{run?.id || "N/A"}</span>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-[12px] font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              Done
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                onClose();
+                onRun(agent.id);
+              }}
+              className="px-4 py-2 rounded-lg text-[12px] font-semibold text-white flex items-center gap-1.5 transition-all"
+              style={{
+                background: "linear-gradient(135deg, #0099CC 0%, #005FA0 100%)",
+                border: "1px solid rgba(0, 212, 255, 0.4)",
+              }}
+            >
+              <RotateCw className="w-3.5 h-3.5" />
+              <span>Re-run Agent</span>
+            </button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -262,7 +382,7 @@ export default function Agents() {
     latestByAgent,
   } = useAgents();
 
-  const [expandedId, setExpandedId] = useState(null);
+  const [activeModalRun, setActiveModalRun] = useState(null);
   const [historyFilter, setHistoryFilter] = useState("all");
 
   const orchestrator = agents.find((a) => a.id === ORCHESTRATOR_ID);
@@ -278,13 +398,24 @@ export default function Agents() {
     return runs;
   }, [runs, historyFilter]);
 
-  const riskScore = selectedCase?.risk_score !== null && selectedCase?.risk_score !== undefined
-    ? Math.round(selectedCase.risk_score)
-    : 0;
+  const riskScore =
+    selectedCase?.risk_score !== null && selectedCase?.risk_score !== undefined
+      ? Math.round(selectedCase.risk_score)
+      : 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-fade-in-up">
-      {/* ── Page Header & Interactive Case Selector ─────────────────────── */}
+      {/* ── Modal Dialog for Detailed Findings ─────────────────────────── */}
+      {activeModalRun && (
+        <AgentDetailModal
+          data={activeModalRun}
+          onClose={() => setActiveModalRun(null)}
+          onRun={runAgent}
+          busy={busy}
+        />
+      )}
+
+      {/* ── Page Header & Case Selector ─────────────────────────────────── */}
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[10.5px] font-mono uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 mb-1.5">
@@ -422,9 +553,6 @@ export default function Agents() {
                 boxShadow: "0 0 35px rgba(0, 212, 255, 0.12), inset 0 1px 0 rgba(0, 212, 255, 0.2)",
               }}
             >
-              {/* Corner accent decorations */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
                 <div className="flex items-start gap-4">
                   <div
@@ -443,12 +571,12 @@ export default function Agents() {
                         RECOMMENDED ACTION
                       </span>
                       <h2 className="text-lg font-bold text-white tracking-tight">
-                        {AGENT_INFO.case_orchestrator.simpleName}
+                        {AGENT_CONFIG.case_orchestrator.simpleName}
                       </h2>
                       <StatusPill status={runningId === ORCHESTRATOR_ID ? "running" : orchRun?.status || "idle"} />
                     </div>
                     <p className="text-[13px] text-slate-300 mt-1.5 max-w-2xl leading-relaxed">
-                      {AGENT_INFO.case_orchestrator.description}
+                      {AGENT_CONFIG.case_orchestrator.description}
                     </p>
                   </div>
                 </div>
@@ -489,18 +617,18 @@ export default function Agents() {
               {/* 5-Step Pipeline Roadmap */}
               <div className="mt-5 pt-4 border-t border-cyan-500/15">
                 <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                  <span>5-Stage Automated Investigation Sequence</span>
+                  <span>5-Stage Investigation Pipeline</span>
                   <span className="text-slate-600">•</span>
-                  <span className="text-slate-500 font-sans normal-case">Runs each specialist agent automatically</span>
+                  <span className="text-slate-500 font-sans normal-case">Runs each specialist automatically</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
                   {[
-                    { id: "digital_evidence", step: 1, name: "Extract Evidence", detail: "Phones, accounts, UPIs" },
-                    { id: "correlation", step: 2, name: "Cross-Case Links", detail: "Shared scam networks" },
-                    { id: "threat_analysis", step: 3, name: "Score Threat", detail: "0-100 risk rating" },
-                    { id: "jurisdiction", step: 4, name: "Police Station", detail: "Legal jurisdiction" },
-                    { id: "investigation_report", step: 5, name: "Draft Report", detail: "Section 65B summary" },
+                    { id: "digital_evidence", step: 1, name: "Evidence Scanner" },
+                    { id: "correlation", step: 2, name: "Cross-Case Links" },
+                    { id: "threat_analysis", step: 3, name: "Risk Assessment" },
+                    { id: "jurisdiction", step: 4, name: "Police Station" },
+                    { id: "investigation_report", step: 5, name: "Case Summary" },
                   ].map((s) => {
                     const child = pipeline.find((p) => p.agent_id === s.id);
                     const stStatus = child ? child.status : orchRun ? "completed" : "idle";
@@ -514,11 +642,10 @@ export default function Agents() {
                         }}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-mono text-cyan-400 font-semibold">STAGE {s.step}</span>
+                          <span className="text-[10px] font-mono text-cyan-400 font-bold">STAGE {s.step}</span>
                           <StatusPill status={stStatus} />
                         </div>
-                        <div className="text-[12px] font-semibold text-slate-200 mt-1">{s.name}</div>
-                        <div className="text-[10.5px] text-slate-400 mt-0.5">{s.detail}</div>
+                        <div className="text-[12px] font-semibold text-slate-200 mt-0.5 truncate">{s.name}</div>
                       </div>
                     );
                   })}
@@ -528,44 +655,47 @@ export default function Agents() {
               {/* Latest Run Highlights */}
               {orchRun && (
                 <div
-                  className="mt-4 p-3.5 rounded-xl"
+                  className="mt-4 p-3.5 rounded-xl flex items-center justify-between gap-3 flex-wrap"
                   style={{
                     background: "rgba(5, 12, 26, 0.7)",
                     border: "1px solid rgba(0, 212, 255, 0.2)",
                   }}
                 >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
-                        Latest Outcome:
-                      </span>
-                      <span className="text-[12.5px] text-slate-200">{orchRun.summary}</span>
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      {formatWhen(orchRun.created_at)} · {formatDuration(orchRun.duration_ms)}
+                  <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                    <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold whitespace-nowrap">
+                      Latest Result:
+                    </span>
+                    <span className="text-[12.5px] text-slate-200 truncate">{orchRun.summary}</span>
+                    <span className="text-[11px] font-mono text-slate-400 whitespace-nowrap">
+                      ({formatDuration(orchRun.duration_ms)})
                     </span>
                   </div>
 
-                  <FindingsDrawer run={orchRun} />
+                  <button
+                    type="button"
+                    onClick={() => setActiveModalRun({ agent: orchestrator, run: orchRun })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-cyan-300 hover:text-white bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-colors whitespace-nowrap"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Inspect Full Auto-Pilot Report</span>
+                  </button>
                 </div>
               )}
             </section>
           )}
 
-          {/* ── Section: Specialist Agents Grid ──────────────────────────── */}
+          {/* ── Section: Specialist Agents Grid (Equal-height, balanced cards) ── */}
           <div>
-            <div className="flex items-center justify-between mb-3.5">
-              <div>
-                <h2 className="text-lg font-bold text-white">Individual Specialist Agents</h2>
-                <p className="text-[12.5px] text-slate-400 mt-0.5">
-                  Need to investigate a specific aspect? Run any specialist individually below.
-                </p>
-              </div>
+            <div className="mb-3.5">
+              <h2 className="text-lg font-bold text-white">Individual Specialist Agents</h2>
+              <p className="text-[12.5px] text-slate-400 mt-0.5">
+                Run any specialist individually below to inspect a specific part of this case.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
               {specialists.map((agent) => {
-                const info = AGENT_INFO[agent.id] || {
+                const info = AGENT_CONFIG[agent.id] || {
                   icon: Bot,
                   color: "#00D4FF",
                   bgSoft: "rgba(0, 212, 255, 0.1)",
@@ -579,24 +709,24 @@ export default function Agents() {
                 const Icon = info.icon;
                 const run = latestByAgent[agent.id];
                 const isRunning = runningId === agent.id;
-                const isExpanded = expandedId === agent.id;
                 const currentStatus = isRunning ? "running" : run?.status || "idle";
+                const findingsCount = run?.result?.findings?.length || 0;
 
                 return (
                   <article
                     key={agent.id}
-                    className="p-4 rounded-xl flex flex-col justify-between transition-all"
+                    className="p-5 rounded-xl flex flex-col justify-between transition-all"
                     style={{
-                      background: "rgba(8, 14, 28, 0.75)",
-                      border: "1px solid rgba(0, 212, 255, 0.15)",
-                      boxShadow: "0 4px 16px rgba(0, 0, 0, 0.35)",
+                      background: "rgba(8, 14, 28, 0.8)",
+                      border: "1px solid rgba(0, 212, 255, 0.16)",
+                      boxShadow: "0 4px 18px rgba(0, 0, 0, 0.35)",
                     }}
                   >
                     <div>
                       {/* Top Header */}
                       <div className="flex items-start gap-3 mb-2.5">
                         <div
-                          className="p-2.5 rounded-lg flex items-center justify-center flex-shrink-0"
+                          className="p-2.5 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{
                             background: info.bgSoft,
                             border: `1px solid ${info.borderSoft}`,
@@ -607,49 +737,52 @@ export default function Agents() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1.5">
-                            <h3 className="text-[14px] font-bold text-white tracking-tight truncate">
+                            <h3 className="text-[14.5px] font-bold text-white tracking-tight leading-snug">
                               {info.simpleName}
                             </h3>
                             <StatusPill status={currentStatus} />
                           </div>
-                          <p className="text-[11px] font-mono mt-0.5 truncate" style={{ color: info.color }}>
+                          <p className="text-[11.5px] font-mono mt-0.5" style={{ color: info.color }}>
                             {info.tagline}
                           </p>
                         </div>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-[12px] text-slate-300 leading-relaxed mb-3">
+                      {/* Description (fixed height for balance across cards) */}
+                      <p className="text-[12.5px] text-slate-300 leading-relaxed mb-3 min-h-[38px]">
                         {info.description}
                       </p>
 
-                      {/* Permissions Tag */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-black/40 border border-slate-700/60 text-slate-400">
-                          {agent.access === "read_only" ? "Safe Scan (Read-only)" : "Saves updates to case"}
-                        </span>
+                      {/* Latest Result Highlight Chip (Clean & Uncluttered) */}
+                      <div
+                        className="p-2.5 rounded-lg text-[12px] min-h-[52px] flex flex-col justify-center mb-3"
+                        style={{
+                          background: run ? "rgba(0, 212, 255, 0.04)" : "rgba(0, 0, 0, 0.3)",
+                          border: `1px solid ${run ? "rgba(0, 212, 255, 0.12)" : "rgba(255, 255, 255, 0.05)"}`,
+                        }}
+                      >
+                        {run ? (
+                          <>
+                            <div className="flex items-center gap-1.5 text-slate-200 font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+                              <span className="line-clamp-1">{run.summary}</span>
+                            </div>
+                            <div className="text-[10.5px] font-mono text-slate-400 mt-1">
+                              {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-slate-400 text-[11.5px] flex items-center gap-1.5 italic">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Not run yet on this case.</span>
+                          </div>
+                        )}
                       </div>
-
-                      {/* Latest run summary box */}
-                      {run && (
-                        <div
-                          className="p-2.5 rounded-lg text-[11.5px]"
-                          style={{
-                            background: "rgba(0, 0, 0, 0.4)",
-                            border: "1px solid rgba(0, 212, 255, 0.10)",
-                          }}
-                        >
-                          <p className="text-slate-200 line-clamp-2">{run.summary}</p>
-                          <p className="text-[10px] font-mono text-slate-500 mt-1">
-                            {formatWhen(run.created_at)} · {formatDuration(run.duration_ms)}
-                          </p>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Bottom Action Strip */}
+                    {/* Bottom Action Strip — Always pinned to bottom */}
                     <div
-                      className="mt-4 pt-3 flex items-center justify-between gap-2 border-t"
+                      className="pt-3.5 mt-auto flex items-center justify-between gap-2 border-t"
                       style={{ borderColor: "rgba(0, 212, 255, 0.10)" }}
                     >
                       <button
@@ -661,7 +794,7 @@ export default function Agents() {
                         style={{
                           background: isRunning ? "rgba(0, 212, 255, 0.3)" : "rgba(0, 212, 255, 0.15)",
                           border: "1px solid rgba(0, 212, 255, 0.4)",
-                          boxShadow: isRunning ? "none" : "0 0 10px rgba(0, 212, 255, 0.15)",
+                          boxShadow: isRunning ? "none" : "0 0 10px rgba(0, 212, 255, 0.12)",
                         }}
                       >
                         {isRunning ? (
@@ -675,17 +808,17 @@ export default function Agents() {
                       {run && (
                         <button
                           type="button"
-                          id={`btn-toggle-${agent.id}`}
-                          onClick={() => setExpandedId(isExpanded ? null : agent.id)}
-                          className="inline-flex items-center gap-1 text-[11.5px] text-cyan-400 hover:text-white transition-colors cursor-pointer"
+                          id={`btn-inspect-${agent.id}`}
+                          onClick={() => setActiveModalRun({ agent, run })}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-[12px] font-medium text-cyan-400 hover:text-white transition-colors cursor-pointer"
                         >
-                          <span>{isExpanded ? "Hide Details" : "View Findings"}</span>
-                          {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>
+                            View Details {findingsCount > 0 ? `(${findingsCount})` : ""}
+                          </span>
                         </button>
                       )}
                     </div>
-
-                    {run && isExpanded && <FindingsDrawer run={run} />}
                   </article>
                 );
               })}
@@ -713,7 +846,7 @@ export default function Agents() {
                   </span>
                 </h2>
                 <p className="text-[12px] text-slate-400 mt-0.5">
-                  Complete history of every agent run on case {selectedCase?.case_number}.
+                  Click any past run to inspect its detailed findings and recommendations.
                 </p>
               </div>
 
@@ -722,7 +855,7 @@ export default function Agents() {
                 <button
                   type="button"
                   onClick={() => setHistoryFilter("all")}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors cursor-pointer ${
                     historyFilter === "all"
                       ? "bg-cyan-500 text-slate-950 font-bold"
                       : "bg-black/40 text-slate-400 hover:text-white"
@@ -733,7 +866,7 @@ export default function Agents() {
                 <button
                   type="button"
                   onClick={() => setHistoryFilter("completed")}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors cursor-pointer ${
                     historyFilter === "completed"
                       ? "bg-emerald-500 text-slate-950 font-bold"
                       : "bg-black/40 text-slate-400 hover:text-white"
@@ -744,7 +877,7 @@ export default function Agents() {
                 <button
                   type="button"
                   onClick={() => setHistoryFilter("attention")}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors ${
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-colors cursor-pointer ${
                     historyFilter === "attention"
                       ? "bg-amber-500 text-slate-950 font-bold"
                       : "bg-black/40 text-slate-400 hover:text-white"
@@ -777,31 +910,40 @@ export default function Agents() {
                       </td>
                     </tr>
                   ) : (
-                    filteredRuns.slice(0, 20).map((r) => (
-                      <tr
-                        key={r.id}
-                        className="transition-colors hover:bg-cyan-500/5"
-                      >
-                        <td className="px-4 py-2.5 text-slate-400 font-mono whitespace-nowrap">
-                          {formatWhen(r.created_at)}
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5 text-white font-medium">
-                            {r.parent_run_id ? <span className="text-cyan-400">↳</span> : null}
-                            <span>{r.agent_name}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <StatusPill status={r.status} />
-                        </td>
-                        <td className="px-4 py-2.5 text-slate-300 leading-relaxed max-w-md">
-                          {r.summary}
-                        </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-slate-400 whitespace-nowrap">
-                          {formatDuration(r.duration_ms)}
-                        </td>
-                      </tr>
-                    ))
+                    filteredRuns.slice(0, 20).map((r) => {
+                      const matchedAgent = agents.find((a) => a.id === r.agent_id) || {
+                        id: r.agent_id,
+                        name: r.agent_name,
+                        role: "Specialist",
+                      };
+                      return (
+                        <tr
+                          key={r.id}
+                          onClick={() => setActiveModalRun({ agent: matchedAgent, run: r })}
+                          className="transition-colors hover:bg-cyan-500/10 cursor-pointer"
+                          title="Click to view detailed report"
+                        >
+                          <td className="px-4 py-2.5 text-slate-400 font-mono whitespace-nowrap">
+                            {formatWhen(r.created_at)}
+                          </td>
+                          <td className="px-4 py-2.5 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-white font-medium">
+                              {r.parent_run_id ? <span className="text-cyan-400">↳</span> : null}
+                              <span>{r.agent_name}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 whitespace-nowrap">
+                            <StatusPill status={r.status} />
+                          </td>
+                          <td className="px-4 py-2.5 text-slate-300 leading-relaxed max-w-md">
+                            {r.summary}
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-mono text-slate-400 whitespace-nowrap">
+                            {formatDuration(r.duration_ms)}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
