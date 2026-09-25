@@ -12,11 +12,11 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "changeme"
     JWT_EXPIRE_MINUTES: int = 480
     AI_SUMMARY_API_KEY: str = "your_key_here"
-    AI_SUMMARY_API_URL: str = "https://api.openai.com/v1/chat/completions"
-    AI_SUMMARY_MODEL: str = "gpt-4o-mini"
+    AI_SUMMARY_API_URL: str = "https://api.groq.com/openai/v1/chat/completions"
+    AI_SUMMARY_MODEL: str = "openai/gpt-oss-20b"
     # Chat assistant re-uses the AI_SUMMARY_* credentials/endpoint. Timeout (seconds)
     # for a single LLM call before the assistant falls back to data-driven answers.
-    AI_CHAT_TIMEOUT_SECONDS: float = 15.0
+    AI_CHAT_TIMEOUT_SECONDS: float = 60.0
 
     model_config = SettingsConfigDict(
         env_file=str(env_path),
