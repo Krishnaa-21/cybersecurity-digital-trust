@@ -78,6 +78,11 @@ app.include_router(chat_router, prefix="/api")
 app.include_router(agents_router, prefix="/api")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def root():
     return {"message": "TraceX API is running"}
+
+
+@app.api_route("/ping", methods=["GET", "HEAD"], include_in_schema=False)
+def ping():
+    return {"ok": True}
